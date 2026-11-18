@@ -76,7 +76,7 @@ The demo configures a 512-token input limit and full 768-dimensional embeddings.
 
 ## 6. Export to Autonomous AI Database
 
-Set `DB_USER` and `DB_DSN` in the configuration section of the Python script. Use a TNS alias from the OCI Database connection page or the wallet's `tnsnames.ora`. The user needs `CREATE MINING MODEL`. The script prompts for the database user's password, which is separate from the wallet password.
+The script uses `ADMIN` for `DB_USER`. Set `DB_DSN` in the configuration section of the Python script. Use a TNS alias from the OCI Database connection page or the wallet's `tnsnames.ora`. The user needs `CREATE MINING MODEL`. The script prompts for the database user's password, which is separate from the wallet password.
 
 ```bash
 python3 embedding_model_demo.py import-db

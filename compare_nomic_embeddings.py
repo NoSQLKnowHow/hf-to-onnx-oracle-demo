@@ -2,7 +2,7 @@
 """Compare quantized and unquantized Oracle models with Nomic reference vectors.
 
 Run inside the OML4Py container with the wallet configured (TNS_ADMIN).
-Set DB_USER and DB_DSN below. Set the database model names below. This script only queries existing models.
+Set DB_DSN and the database model names below. This script only queries existing models.
 """
 
 import getpass
@@ -15,7 +15,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel, AutoTokenizer
 
-DB_USER = "your_database_username"
+DB_USER = "ADMIN"
 DB_DSN = "your_database_low"
 # Fixed SQL identifier, not a bind variable. Change only to a trusted model name.
 DB_MODEL_QUANTIZED = "NOMIC_EMBED_TEXT_V15_INT8"
@@ -53,8 +53,8 @@ def cosine(a, b):
 
 
 def main():
-    if DB_USER == "your_database_username" or DB_DSN == "your_database_low":
-        raise SystemExit("Set DB_USER and DB_DSN in this script before running.")
+    if DB_DSN == "your_database_low":
+        raise SystemExit("Set DB_DSN in this script before running.")
     if not os.environ.get("TNS_ADMIN"):
         raise SystemExit("Set TNS_ADMIN to the wallet directory before running.")
     # The OML4Py image includes Oracle Instant Client. Thick mode uses sqlnet.ora.

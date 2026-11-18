@@ -5,7 +5,7 @@ Run inside the full OML4Py 2.1 client container:
     python3 embedding_model_demo.py convert
     python3 embedding_model_demo.py import-db
 
-Set DB_USER and DB_DSN in the configuration section below. DB_DSN is the
+Set DB_DSN in the configuration section below. DB_DSN is the
 Autonomous Database connection alias; configure network access and the wallet
 if required by that connection. The password is prompted without echoing.
 The database user needs CREATE MINING MODEL. Internet access to Hugging Face
@@ -20,7 +20,7 @@ from pathlib import Path
 
 from oml.utils import ONNXPipeline, ONNXPipelineConfig
 
-DB_USER = "your_database_username"
+DB_USER = "ADMIN"
 DB_DSN = "your_database_low"
 
 MODEL_ID = "nomic-ai/nomic-embed-text-v1.5"
@@ -63,8 +63,8 @@ def import_db():
     import oml
 
     user, dsn = DB_USER, DB_DSN
-    if not user or not dsn or user == "your_database_username" or dsn == "your_database_low":
-        raise SystemExit("Set DB_USER and DB_DSN in the script before importing.")
+    if not user or not dsn or dsn == "your_database_low":
+        raise SystemExit("Set DB_DSN in the script before importing.")
     password = getpass.getpass("Database password: ")
     oml.connect(user=user, password=password, dsn=dsn)
     try:
