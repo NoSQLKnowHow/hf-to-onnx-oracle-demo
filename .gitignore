@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.onnx
+*.data
+*.zip
+*.sso
+*.p12
+*.pem
+*.jks
+.env
+wallet/
