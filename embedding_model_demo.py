@@ -24,7 +24,8 @@ DB_USER = "ADMIN"
 DB_DSN = "your_database_low"
 
 MODEL_ID = "nomic-ai/nomic-embed-text-v1.5"
-MODEL_NAME = "NOMIC_EMBED_TEXT_V15_INT8"
+QUANTIZE_MODEL = True
+MODEL_NAME = "NOMIC_EMBED_TEXT_V15" + ("_INT8" if QUANTIZE_MODEL else "")
 OUTPUT_DIR = Path(os.environ.get("ONNX_OUTPUT_DIR", "."))
 MAX_TOKENS = 512
 USE_EXTERNAL_DATA = True
@@ -37,7 +38,7 @@ def make_pipeline():
     # input limit, not a claim about the maximum supported by Nomic.
     config = ONNXPipelineConfig.from_template(
         "text", max_seq_length=MAX_TOKENS, distance_metrics=["COSINE"],
-        quantize_model=True,
+        quantize_model=QUANTIZE_MODEL,
         use_external_data=USE_EXTERNAL_DATA,
     )
     return ONNXPipeline(model_name=MODEL_ID, config=config)
