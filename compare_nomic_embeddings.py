@@ -16,7 +16,7 @@ import torch.nn.functional as F
 from transformers import AutoModel, AutoTokenizer
 
 DB_USER = "ADMIN"
-DB_DSN = "your_database_low"
+DB_DSN = "database-name_low"
 # Fixed SQL identifier, not a bind variable. Change only to a trusted model name.
 QUANTIZE_MODEL = False
 MODEL_NAME = "NOMIC_EMBED_TEXT_V15" + ("_INT8" if QUANTIZE_MODEL else "")
