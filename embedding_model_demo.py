@@ -5,12 +5,11 @@ Run inside the full OML4Py 2.1 client container:
     python3 embedding_model_demo.py convert
     python3 embedding_model_demo.py import-db
 
-Set DB_DSN in the configuration section below. DB_DSN is the
-Autonomous Database connection alias; configure network access and the wallet
-if required by that connection. The password is prompted without echoing.
-The database user needs CREATE MINING MODEL. Internet access to Hugging Face
-is needed on the first conversion. This candidate needs an actual test with
-this model and the installed OML4Py version before recording.
+Set DB_DSN in the configuration section below. DB_DSN is the Autonomous Database connection alias;
+configure network access and the wallet if required by that connection. The password is prompted
+without echoing. The database user needs CREATE MINING MODEL. Internet access to Hugging Face
+is needed on the first conversion. This candidate needs an actual test with this model and the
+installed OML4Py version before recording.
 """
 
 import argparse
@@ -21,23 +20,26 @@ from pathlib import Path
 from oml.utils import ONNXPipeline, ONNXPipelineConfig
 
 DB_USER = "ADMIN"
-DB_DSN = "your_database_low"
+DB_DSN = "database-name_low"
 
+# This is the value for the model card on Hugging face.
 MODEL_ID = "nomic-ai/nomic-embed-text-v1.5"
-QUANTIZE_MODEL = True
+# Do not quantize the model by default
+QUANTIZE_MODEL = False
 MODEL_NAME = "NOMIC_EMBED_TEXT_V15" + ("_INT8" if QUANTIZE_MODEL else "")
 OUTPUT_DIR = Path(os.environ.get("ONNX_OUTPUT_DIR", "."))
+# MAX_TOKENS set to 512 is this demo's input limit, not a claim about the maximum supported by Nomic.
 MAX_TOKENS = 512
+# this value sets it so the model will use "memory sharing" once in an Oracle database. You likely want this.
 USE_EXTERNAL_DATA = True
 QUERY = "search_query: How do I find documents by meaning?"
 
 
 def make_pipeline():
-    # Nomic is absent from Oracle's published preconfigured list. The text
-    # template applies mean pooling and L2 normalization. 512 is this demo's
-    # input limit, not a claim about the maximum supported by Nomic.
     config = ONNXPipelineConfig.from_template(
-        "text", max_seq_length=MAX_TOKENS, distance_metrics=["COSINE"],
+        "text",
+        max_seq_length=MAX_TOKENS,
+        distance_metrics=["COSINE"],
         quantize_model=QUANTIZE_MODEL,
         use_external_data=USE_EXTERNAL_DATA,
     )
@@ -64,9 +66,9 @@ def import_db():
     import oml
 
     user, dsn = DB_USER, DB_DSN
-    if not user or not dsn or dsn == "your_database_low":
+    if not user or not dsn or dsn == "database-name_low":
         raise SystemExit("Set DB_DSN in the script before importing.")
-    password = getpass.getpass("Database password: ")
+    password = getpass.getpass("Enter your database password: ")
     oml.connect(user=user, password=password, dsn=dsn)
     try:
         cursor = oml.cursor()
