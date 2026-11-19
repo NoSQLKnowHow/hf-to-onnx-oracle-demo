@@ -1,4 +1,6 @@
-# Nomic embeddings in Oracle AI Database
+# Converting an embedding model from HuggingFace.co to be used inside an Oracle AI Database
+
+**Note:** The code and information in this repository are not endorsed, sanctioned, or otherwise approved by Oracle, Inc.
 
 Demo scripts for converting `nomic-ai/nomic-embed-text-v1.5` with Oracle Machine Learning for Python (OML4Py), importing it into Oracle Autonomous AI Database, and comparing database embeddings with the Nomic reference implementation.
 
