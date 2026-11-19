@@ -2,11 +2,11 @@
 
 **Note:** The code and information in this repository are not endorsed, sanctioned, or otherwise approved by Oracle, Inc.
 
-Demo scripts for converting `nomic-ai/nomic-embed-text-v1.5` with Oracle Machine Learning for Python (OML4Py), importing it into Oracle Autonomous AI Database, and comparing database embeddings with the Nomic reference implementation.
+Demo scripts for converting `nomic-ai/nomic-embed-text-v1.5`, or any other embedding model on HF.co, with Oracle Machine Learning for Python (OML4Py), importing it into Oracle Autonomous AI Database, and then comparing database embeddings with the Nomic reference implementation.
 
-- `embedding_model_demo.py` creates an ONNX pipeline and exports a pipeline directly to the database.
-- `compare_nomic_embeddings.py` compares an unquantized Nomic reference with quantized and unquantized database models.
-- [Setup guide](nomic-embedding-demo-setup.md) covers the OML4Py container, `einops`, wallet setup, conversion, and database export.
+- `embedding_model_demo.py` packages an embedding model into ONNX format by creating an ONNX pipeline, and can export that embedding model directly to an Oracle AI Database.
+- `compare_nomic_embeddings.py` compares an unquantized Nomic reference with quantized and unquantized database models hosted in an Oracle AI Database.
+- [Setup guide](nomic-embedding-demo-setup.md) covers the OML4Py container, `einops`, Oracle wallet setup, conversion, and export to an Oracle AI Database.
 
 Run the scripts inside the configured OML4Py client container. The scripts use the `ADMIN` database user. Set the service alias and model names in the scripts. Passwords are requested at runtime. Do not commit wallet files, credentials, model downloads, or exported ONNX files.
 
