@@ -1,4 +1,4 @@
-# Converting an embedding model from HuggingFace.co to be used inside an Oracle AI Database
+# Running HuggingFace embedding models inside Oracle AI Database
 
 **Note:** The code and information in this repository are for demonstration purposes online. They are not endorsed, sanctioned, or otherwise approved by Oracle, Inc.
 
