@@ -5,7 +5,7 @@ Run inside the full OML4Py 2.1 client container:
     python3 embedding_model_demo.py convert
     python3 embedding_model_demo.py import-db
 
-Copy config.example.toml to config.toml and set the database connection alias;
+Copy config/config.example.toml to config/config.toml and set the database connection alias;
 configure network access and the wallet if required by that connection. The password is prompted
 without echoing. The database user needs CREATE MINING MODEL. Internet access to Hugging Face
 is needed on the first conversion. This candidate needs an actual test with this model and the
@@ -19,7 +19,7 @@ from pathlib import Path
 
 from oml.utils import ONNXPipeline, ONNXPipelineConfig
 
-from demo_config import load_config
+from support.demo_config import load_config
 
 CONFIG = load_config()
 DB_USER = CONFIG["database"]["user"]
@@ -66,7 +66,7 @@ def import_db():
 
     user, dsn = DB_USER, DB_DSN
     if not user or not dsn or dsn == "database-name_low":
-        raise SystemExit("Set database.dsn in config.toml before importing.")
+        raise SystemExit("Set database.dsn in config/config.toml before importing.")
     password = getpass.getpass("Enter your database password: ")
     oml.connect(user=user, password=password, dsn=dsn)
     try:

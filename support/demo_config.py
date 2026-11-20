@@ -3,7 +3,7 @@ import re
 import tomllib
 from pathlib import Path
 
-CONFIG_PATH = Path(__file__).resolve().with_name("config.toml")
+CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "config.toml"
 
 
 def load_config():
@@ -11,7 +11,7 @@ def load_config():
         with CONFIG_PATH.open("rb") as source:
             config = tomllib.load(source)
     except FileNotFoundError:
-        raise SystemExit(f"Configuration not found: {CONFIG_PATH}. Copy config.example.toml to config.toml and edit it.")
+        raise SystemExit(f"Configuration not found: {CONFIG_PATH}. Copy config/config.example.toml to config/config.toml and edit it.")
     except tomllib.TOMLDecodeError as exc:
         raise SystemExit(f"Invalid configuration in {CONFIG_PATH}: {exc}")
     try:

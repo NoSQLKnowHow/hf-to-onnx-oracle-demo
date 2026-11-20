@@ -55,13 +55,13 @@ The `DIRECTORY` entry should point to `/u01/oml_home/wallet`. The shell must hav
 
 ## 4. Copy the scripts and configure the demo
 
-Copy the repository into the container or mount its directory. The scripts, `demo_config.py`, and `config.example.toml` must be in the same directory. Inside that directory, create your local configuration:
+Copy the repository into the container or mount its directory. Keep the scripts and the `support`, `config`, and `docs` directories together as they appear in the repository. Inside that directory, create your local configuration:
 
 ```bash
-cp config.example.toml config.toml
+cp config/config.example.toml config/config.toml
 ```
 
-Edit `config.toml`. Set `[database]` `dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `[model]` section controls the model ID, name, quantization, external data, output directory, input limit, and expected vector dimensions. `[comparison]` contains the imported model names and reference settings; set either database model name to an empty string to skip it. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. Your local `config.toml` is ignored by Git.
+Edit `config/config.toml`. Set `[database]` `dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `[model]` section controls the model ID, name, quantization, external data, output directory, input limit, and expected vector dimensions. `[comparison]` contains the imported model names and reference settings; set either database model name to an empty string to skip it. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. Your local `config/config.toml` is ignored by Git.
 
 These scripts use Python 3.11 or newer for standard-library TOML parsing; the OML4Py 2.1.1 container provides Python 3.13.
 
@@ -80,7 +80,7 @@ The demo configures a 512-token input limit and full 768-dimensional embeddings.
 
 ## 6. Export to Autonomous AI Database
 
-The example configuration uses `ADMIN`. Set `dsn` in the `[database]` section of `config.toml`. Use a TNS alias from the OCI Database connection page or the wallet's `tnsnames.ora`. The user needs `CREATE MINING MODEL`. The script prompts for the database user's password, which is separate from the wallet password.
+The example configuration uses `ADMIN`. Set `dsn` in the `[database]` section of `config/config.toml`. Use a TNS alias from the OCI Database connection page or the wallet's `tnsnames.ora`. The user needs `CREATE MINING MODEL`. The script prompts for the database user's password, which is separate from the wallet password.
 
 ```bash
 python3 embedding_model_demo.py import-db
@@ -90,7 +90,7 @@ This step exports the pipeline directly to the database. It does not read the ON
 
 ## 7. Compare embeddings
 
-Set one or both `[comparison]` model names in `config.toml`; an empty string disables that model. Edit `[[cases]]` to provide representative Nomic query and document text, and choose the query and document case names in `[comparison]`. Then run:
+Set one or both `[comparison]` model names in `config/config.toml`; an empty string disables that model. Edit `[[cases]]` to provide representative Nomic query and document text, and choose the query and document case names in `[comparison]`. Then run:
 
 ```bash
 python3 compare_nomic_embeddings.py

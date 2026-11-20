@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare one or two imported Nomic models with Hugging Face reference vectors.
 
-Copy config.example.toml to config.toml and configure the database, model names,
+Copy config/config.example.toml to config/config.toml and configure the database, model names,
 and example inputs. Run inside the OML4Py client container with TNS_ADMIN set.
 This script only queries existing models; it does not import or delete them.
 """
@@ -14,7 +14,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel, AutoTokenizer
 
-from demo_config import load_config, validate_model_name
+from support.demo_config import load_config, validate_model_name
 
 CONFIG = load_config()
 DB_USER = CONFIG["database"]["user"]
@@ -41,7 +41,7 @@ def read_cases():
             raise SystemExit(f"Case {name} needs nonempty text.")
         cases[name] = text
     if not cases:
-        raise SystemExit("Add at least one [[cases]] entry to config.toml.")
+        raise SystemExit("Add at least one [[cases]] entry to config/config.toml.")
     return cases
 
 
@@ -63,7 +63,7 @@ def cosine(a, b):
 
 def main():
     if DB_DSN == "database-name_low":
-        raise SystemExit("Set database.dsn in config.toml before running.")
+        raise SystemExit("Set database.dsn in config/config.toml before running.")
     if not os.environ.get("TNS_ADMIN"):
         raise SystemExit("Set TNS_ADMIN to the wallet directory before running.")
     try:

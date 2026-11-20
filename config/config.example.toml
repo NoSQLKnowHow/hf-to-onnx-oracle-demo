@@ -1,4 +1,4 @@
-# Copy to config.toml and edit that file. Never put a password here.
+# Copy to config/config.toml and edit that file. Never put a password here.
 [database]
 user = "ADMIN"
 dsn = "database-name_low" # Replace with your wallet's TNS alias.
