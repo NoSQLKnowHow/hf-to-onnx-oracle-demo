@@ -26,7 +26,7 @@ DB_DSN = "database-name_low"
 MODEL_ID = "nomic-ai/nomic-embed-text-v1.5"
 # Do not quantize the model by default
 QUANTIZE_MODEL = False
-MODEL_NAME = "NOMIC_EMBED_TEXT_V15" + ("_INT8" if QUANTIZE_MODEL else "")
+MODEL_NAME = "NOMIC_EMBED_TEXT_V15_ONNX" + ("_INT8" if QUANTIZE_MODEL else "")
 OUTPUT_DIR = Path(os.environ.get("ONNX_OUTPUT_DIR", "."))
 # MAX_TOKENS set to 512 is this demo's input limit, not a claim about the maximum supported by Nomic.
 MAX_TOKENS = 512
