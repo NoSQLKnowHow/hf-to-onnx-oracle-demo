@@ -1,34 +1,39 @@
-# Copy to config/config.toml and edit that file. Never put a password here.
-[database]
-user = "ADMIN"
-dsn = "database-name_low" # Replace with your wallet's TNS alias.
+# Copy this file to config/config.toml and edit your copy. Never put a password here.
+# SETTINGS TO REVIEW FIRST
+# Database connection: use a TNS alias from your wallet.
+database.user = "ADMIN"
+database.dsn = "database-name_low"
 
-[model]
-id = "nomic-ai/nomic-embed-text-v1.5"
-name = "NOMIC_EMBED_TEXT_V15_ONNX" # Adds _INT8 when quantize is true.
-quantize = false
-external_data = true
-output_dir = "."
-max_tokens = 512
-dimensions = 768
-distance_metrics = ["COSINE"]
-# OML4Py text-template defaults. Change these only for a compatible model.
-do_lower_case = true
-post_processors = [{ name = "Pooling", type = "mean" }, { name = "Normalize" }]
-languages = []
-use_float16 = false
-query = "search_query: How do I find documents by meaning?"
+# Hugging Face model and the name used for the exported database model.
+model.id = "nomic-ai/nomic-embed-text-v1.5"
+model.name = "NOMIC_EMBED_TEXT_V15_ONNX" # Adds _INT8 when quantize is true.
+model.quantize = false
+model.output_dir = "."
+model.max_tokens = 512
+model.dimensions = 768
 
-[comparison]
-# Set either model name to an empty string to skip it.
-unquantized_model = "NOMIC_EMBED_TEXT_V15_ONNX"
-quantized_model = "" # Set after importing a quantized model.
-tokenizer_id = "bert-base-uncased"
-trust_remote_code = true # Reference model loading executes Nomic custom code.
-code_revision = "7710840340a098cfb869c4f65e87cf2b1b70caca"
-query_case = "query_short"
-document_cases = ["document_short", "document_unrelated", "document_medium"]
+# Database models to compare; an empty name disables that model.
+comparison.unquantized_model = "NOMIC_EMBED_TEXT_V15_ONNX"
+comparison.quantized_model = "" # Set after importing a quantized model.
 
+# OTHER SETTINGS
+# Review these when choosing a different model or changing the export behavior.
+model.external_data = true
+model.distance_metrics = ["COSINE"]
+model.do_lower_case = true
+model.post_processors = [{ name = "Pooling", type = "mean" }, { name = "Normalize" }]
+model.languages = []
+model.use_float16 = false
+model.query = "search_query: How do I find documents by meaning?"
+
+# Reference settings for comparing Nomic embeddings.
+comparison.tokenizer_id = "bert-base-uncased"
+comparison.trust_remote_code = true # Reference loading executes Nomic custom code.
+comparison.code_revision = "7710840340a098cfb869c4f65e87cf2b1b70caca"
+comparison.query_case = "query_short"
+comparison.document_cases = ["document_short", "document_unrelated", "document_medium"]
+
+# Example texts can be replaced with representative queries and documents.
 [[cases]]
 name = "query_short"
 text = "search_query: How do I find documents by meaning?"

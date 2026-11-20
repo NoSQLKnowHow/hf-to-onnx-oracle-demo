@@ -61,7 +61,7 @@ Copy the repository into the container or mount its directory. Keep the scripts 
 cp config/config.example.toml config/config.toml
 ```
 
-Edit `config/config.toml`. Set `[database]` `dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `[model]` section controls the model ID, name, quantization, external data, output directory, input limit, expected vector dimensions, and text-template options. The example explicitly includes the text template defaults for lowercasing and mean pooling plus normalization. `[comparison]` contains the imported model names and reference settings; the quantized model name is empty by default, so the comparison starts with the unquantized model. Set its name after importing a quantized model, or set the unquantized name to an empty string to skip it. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. Your local `config/config.toml` is ignored by Git.
+Edit `config/config.toml`. Set `database.dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `model.*` settings control the model ID, name, quantization, external data, output directory, input limit, expected vector dimensions, and text-template options. The example explicitly includes the text template defaults for lowercasing and mean pooling plus normalization. `comparison.*` contains the imported model names and reference settings; the quantized model name is empty by default, so the comparison starts with the unquantized model. Set its name after importing a quantized model, or set the unquantized name to an empty string to skip it. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. Your local `config/config.toml` is ignored by Git.
 
 These scripts use Python 3.11 or newer for standard-library TOML parsing; the OML4Py 2.1.1 container provides Python 3.13.
 
@@ -74,13 +74,13 @@ cd /path/to/repository
 python3 embedding_model_demo.py convert
 ```
 
-The installed Transformers version asks for permission to run custom model code. Review the model and referenced code before answering `y` to each prompt. The prompts can time out. The example configuration has quantization disabled and external data enabled. Set `quantize = true` in the `[model]` section to quantize the model. The base model name is `NOMIC_EMBED_TEXT_V15_ONNX`; the script adds `_INT8` only when quantization is enabled. Oracle documents that `export2file` produces a ZIP archive containing the ONNX graph and its external data files. With quantization enabled, the script expects `NOMIC_EMBED_TEXT_V15_ONNX_INT8.zip` in the current directory and displays a pipeline summary if conversion succeeds. This configuration and archive name have not yet been verified in the container.
+The installed Transformers version asks for permission to run custom model code. Review the model and referenced code before answering `y` to each prompt. The prompts can time out. The example configuration has quantization disabled and external data enabled. Set `model.quantize = true` to quantize the model. The base model name is `NOMIC_EMBED_TEXT_V15_ONNX`; the script adds `_INT8` only when quantization is enabled. Oracle documents that `export2file` produces a ZIP archive containing the ONNX graph and its external data files. With quantization enabled, the script expects `NOMIC_EMBED_TEXT_V15_ONNX_INT8.zip` in the current directory and displays a pipeline summary if conversion succeeds. This configuration and archive name have not yet been verified in the container.
 
 The demo configures a 512-token input limit and full 768-dimensional embeddings. The observed conversion recommended quantization for a model over 400 MB and emitted tracing warnings about sequence-length conditions. Successful conversion alone does not establish numerical equivalence or correct behavior for all input lengths. Compare outputs with a Nomic reference for varied short, long, query, and document inputs before recording. Quantization is optional and needs its own quality checks.
 
 ## 6. Export to Autonomous AI Database
 
-The example configuration uses `ADMIN`. Set `dsn` in the `[database]` section of `config/config.toml`. Use a TNS alias from the OCI Database connection page or the wallet's `tnsnames.ora`. The user needs `CREATE MINING MODEL`. The script prompts for the database user's password, which is separate from the wallet password.
+The example configuration uses `ADMIN`. Set `database.dsn` in `config/config.toml`. Use a TNS alias from the OCI Database connection page or the wallet's `tnsnames.ora`. The user needs `CREATE MINING MODEL`. The script prompts for the database user's password, which is separate from the wallet password.
 
 ```bash
 python3 embedding_model_demo.py import-db
@@ -90,7 +90,7 @@ This step exports the pipeline directly to the database. It does not read the ON
 
 ## 7. Compare embeddings
 
-Set one or both `[comparison]` model names in `config/config.toml`; an empty string disables that model. Edit `[[cases]]` to provide representative Nomic query and document text, and choose the query and document case names in `[comparison]`. Then run:
+Set one or both `comparison.*` model names in `config/config.toml`; an empty string disables that model. Edit `[[cases]]` to provide representative Nomic query and document text, and choose the query and document case names in the `comparison.*` settings. Then run:
 
 ```bash
 python3 compare_nomic_embeddings.py
