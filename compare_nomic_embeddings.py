@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Compare quantized and unquantized Oracle models with Nomic reference vectors.
+"""Compare one or two imported Nomic models with Hugging Face reference vectors.
 
-Run inside the OML4Py container with the wallet configured (TNS_ADMIN).
-Set DB_DSN and the database model names below. This script only queries existing models.
+Copy config.example.toml to config.toml and configure the database, model names,
+and example inputs. Run inside the OML4Py client container with TNS_ADMIN set.
+This script only queries existing models; it does not import or delete them.
 """
-
 import getpass
 import os
-import re
 
 import numpy as np
 import oracledb
@@ -15,25 +14,35 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel, AutoTokenizer
 
-DB_USER = "ADMIN"
-DB_DSN = "database-name_low"
-# Fixed SQL identifier, not a bind variable. Change only to a trusted model name.
-QUANTIZE_MODEL = False
-MODEL_NAME = "NOMIC_EMBED_TEXT_V15_ONNX" + ("_INT8" if QUANTIZE_MODEL else "")
-MODEL_ID = "nomic-ai/nomic-embed-text-v1.5"
-# The custom-code revision observed in the successful export log.
-CODE_REVISION = "7710840340a098cfb869c4f65e87cf2b1b70caca"
-MAX_TOKENS = 512
+from demo_config import load_config, validate_model_name
 
-CASES = [
-    ("query_short", "search_query: How do I find documents by meaning?"),
-    ("document_short", "search_document: Vector search finds documents with related meanings."),
-    ("document_unrelated", "search_document: A recipe for baking a loaf of bread."),
-    ("query_case", "search_query: How does Oracle Database handle AI Vector Search?"),
-    ("document_medium", "search_document: " + "Oracle Database can store embeddings and use vector search to find related documents. " * 20),
-    ("document_near_limit", "search_document: " + "vector search " * 245),
-    ("document_over_limit", "search_document: " + "vector search " * 270),
-]
+CONFIG = load_config()
+DB_USER = CONFIG["database"]["user"]
+DB_DSN = CONFIG["database"]["dsn"]
+MODEL = CONFIG["model"]
+COMPARISON = CONFIG["comparison"]
+MAX_TOKENS = MODEL["max_tokens"]
+
+
+def read_cases():
+    cases = {}
+    for case in CONFIG.get("cases", []):
+        name = case.get("name")
+        if not isinstance(name, str) or not name or name in cases:
+            raise SystemExit("Each [[cases]] entry needs a unique nonempty name.")
+        if "text" in case:
+            text = case["text"]
+        else:
+            repeat = case.get("repeat", 1)
+            if type(repeat) is not int or not 1 <= repeat <= 10000:
+                raise SystemExit(f"Invalid repeat count for {name}.")
+            text = case.get("prefix", "") + case.get("repeat_text", "") * repeat
+        if not isinstance(text, str) or not text:
+            raise SystemExit(f"Case {name} needs nonempty text.")
+        cases[name] = text
+    if not cases:
+        raise SystemExit("Add at least one [[cases]] entry to config.toml.")
+    return cases
 
 
 def reference_embedding(text, tokenizer, model):
@@ -53,44 +62,51 @@ def cosine(a, b):
 
 
 def main():
-    if DB_DSN == "your_database_low":
-        raise SystemExit("Set DB_DSN in this script before running.")
+    if DB_DSN == "database-name_low":
+        raise SystemExit("Set database.dsn in config.toml before running.")
     if not os.environ.get("TNS_ADMIN"):
         raise SystemExit("Set TNS_ADMIN to the wallet directory before running.")
-    # The OML4Py image includes Oracle Instant Client. Thick mode uses sqlnet.ora.
+    try:
+        models = {kind: validate_model_name(name) for kind, name in (
+            ("unquantized", COMPARISON["unquantized_model"]),
+            ("quantized", COMPARISON["quantized_model"]),
+        ) if name}
+        if not models or len(set(models.values())) != len(models):
+            raise ValueError("Set at least one database model name; enabled names must be distinct.")
+        tokenizer_id = COMPARISON["tokenizer_id"]
+        code_revision = COMPARISON["code_revision"]
+        query_case = COMPARISON["query_case"]
+        document_cases = COMPARISON["document_cases"]
+    except (KeyError, ValueError, TypeError) as exc:
+        raise SystemExit(f"Invalid comparison configuration: {exc}")
+    cases = read_cases()
+    if not isinstance(document_cases, list) or any(name not in cases for name in document_cases) or query_case not in cases:
+        raise SystemExit("comparison.query_case and document_cases must name existing cases.")
+    # This reference implements Nomic's mean-pooling and normalization recipe.
+    if MODEL["id"] != "nomic-ai/nomic-embed-text-v1.5":
+        raise SystemExit("The comparison reference currently supports Nomic Embed Text v1.5 only.")
     oracledb.init_oracle_client()
     password = getpass.getpass("Database password: ")
     with oracledb.connect(user=DB_USER, password=password, dsn=DB_DSN) as connection:
         with connection.cursor() as cursor:
-            models = {"unquantized": DB_MODEL_UNQUANTIZED, "quantized": DB_MODEL_QUANTIZED}
-            if DB_MODEL_UNQUANTIZED == "YOUR_UNQUANTIZED_MODEL_NAME":
-                raise SystemExit("Set DB_MODEL_UNQUANTIZED to the imported model name.")
-            if len(set(models.values())) != 2:
-                raise SystemExit("Set distinct model names for quantized and unquantized models.")
             for kind, name in models.items():
-                if not re.fullmatch(r"[A-Z][A-Z0-9_$#]*", name):
-                    raise SystemExit(f"Use a simple uppercase Oracle model name for {kind}: {name}")
                 cursor.execute("SELECT model_name FROM user_mining_models WHERE model_name = :name", name=name)
                 if not cursor.fetchone():
                     raise SystemExit(f"Model {name} was not found in the connected user's schema.")
             print("Database models:", models)
             print("Loading Nomic reference model. This may take a few minutes.", flush=True)
-            tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-            # Allow token counting without a misleading model-length warning.
-            # Reference inference still explicitly truncates to MAX_TOKENS.
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
             tokenizer.model_max_length = 1_000_000
-            model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True, code_revision=CODE_REVISION)
+            model = AutoModel.from_pretrained(MODEL["id"], trust_remote_code=True, code_revision=code_revision)
             model.eval()
             print("Reference model revision:", getattr(model.config, "_commit_hash", "unknown"))
-            print("Custom code revision:", CODE_REVISION)
-            print("Token count includes special tokens; reference truncates at 512.")
-            print("Pairwise cosine similarity (1.0 means identical direction):")
-            print(f"{'case':22} {'tokens':>7} {'ref/unquant':>12} {'ref/quant':>12} {'unquant/quant':>13}")
+            print("Custom code revision:", code_revision)
+            print(f"Token count includes special tokens; reference truncates at {MAX_TOKENS}.")
             results = {}
-            for label, text in CASES:
+            for label, text in cases.items():
                 token_count = len(tokenizer(text, truncation=False)["input_ids"])
                 if token_count > MAX_TOKENS:
-                    print(f"  Note: {label} has {token_count} tokens; the reference input is truncated to {MAX_TOKENS} tokens before inference. This is an example of why you need a data chunking strategy.", flush=True)
+                    print(f"Note: {label} has {token_count} tokens; the reference input is truncated to {MAX_TOKENS} tokens before inference. This is an example of why you need a data chunking strategy.")
                 vectors = {"reference": reference_embedding(text, tokenizer, model)}
                 for kind, name in models.items():
                     cursor.execute(f"SELECT VECTOR_EMBEDDING({name} USING :text AS data) FROM dual", text=text)
@@ -99,24 +115,20 @@ def main():
                         raise RuntimeError(f"{name} returned no vector for {label}")
                     vectors[kind] = np.asarray(row[0], dtype=np.float64)
                 for kind, vector in vectors.items():
-                    if vector.shape != (768,) or not np.isfinite(vector).all():
+                    if vector.shape != (MODEL["dimensions"],) or not np.isfinite(vector).all():
                         raise RuntimeError(f"Unexpected dimensions or non-finite values for {label} / {kind}: {vector.shape}")
                 results[label] = vectors
-                ref, unquant, quant = (vectors[k] for k in ("reference", "unquantized", "quantized"))
-                print(f"{label:22} {token_count:7d} {cosine(ref, unquant):12.6f} {cosine(ref, quant):12.6f} {cosine(unquant, quant):13.6f}", flush=True)
-            print("\nMaximum absolute coordinate differences:")
-            print(f"{'case':22} {'ref/unquant':>12} {'ref/quant':>12} {'unquant/quant':>13}")
-            for label, vectors in results.items():
-                ref, unquant, quant = (vectors[k] for k in ("reference", "unquantized", "quantized"))
-                print(f"{label:22} {np.max(np.abs(ref-unquant)):12.6f} {np.max(np.abs(ref-quant)):12.6f} {np.max(np.abs(unquant-quant)):13.6f}")
-            print("\nVector norms:")
-            for label, vectors in results.items():
-                print(f"{label:22} " + " ".join(f"{kind}={np.linalg.norm(vector):.6f}" for kind, vector in vectors.items()))
+                print(f"\n{label} ({token_count} tokens):")
+                names = list(vectors)
+                for i, first in enumerate(names):
+                    for second in names[i + 1:]:
+                        x, y = vectors[first], vectors[second]
+                        print(f"  {first} / {second}: cosine={cosine(x, y):.6f}, max abs diff={np.max(np.abs(x-y)):.6f}")
+                print("  norms: " + ", ".join(f"{k}={np.linalg.norm(v):.6f}" for k, v in vectors.items()), flush=True)
             print("\nQuery-to-document cosine similarities (higher is closer):")
-            print(f"{'document':22} {'reference':>12} {'unquantized':>12} {'quantized':>12}")
-            for label in ("document_short", "document_unrelated", "document_medium"):
-                values = [cosine(results["query_short"][kind], results[label][kind]) for kind in ("reference", "unquantized", "quantized")]
-                print(f"{label:22} " + " ".join(f"{value:12.6f}" for value in values))
+            for label in document_cases:
+                scores = [f"{kind}={cosine(results[query_case][kind], results[label][kind]):.6f}" for kind in results[query_case]]
+                print(f"  {label}: " + ", ".join(scores))
             print("\nNo automatic pass threshold: inspect differences and ranking with representative data.")
 
 

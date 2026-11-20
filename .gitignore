@@ -9,3 +9,6 @@ __pycache__/
 *.jks
 .env
 wallet/
+
+# Local connection and demo settings
+config.toml

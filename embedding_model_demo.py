@@ -5,7 +5,7 @@ Run inside the full OML4Py 2.1 client container:
     python3 embedding_model_demo.py convert
     python3 embedding_model_demo.py import-db
 
-Set DB_DSN in the configuration section below. DB_DSN is the Autonomous Database connection alias;
+Copy config.example.toml to config.toml and set the database connection alias;
 configure network access and the wallet if required by that connection. The password is prompted
 without echoing. The database user needs CREATE MINING MODEL. Internet access to Hugging Face
 is needed on the first conversion. This candidate needs an actual test with this model and the
@@ -19,27 +19,26 @@ from pathlib import Path
 
 from oml.utils import ONNXPipeline, ONNXPipelineConfig
 
-DB_USER = "ADMIN"
-DB_DSN = "database-name_low"
+from demo_config import load_config
 
-# This is the value for the model card on Hugging face.
-MODEL_ID = "nomic-ai/nomic-embed-text-v1.5"
-# Do not quantize the model by default
-QUANTIZE_MODEL = False
-MODEL_NAME = "NOMIC_EMBED_TEXT_V15_ONNX" + ("_INT8" if QUANTIZE_MODEL else "")
-OUTPUT_DIR = Path(os.environ.get("ONNX_OUTPUT_DIR", "."))
-# MAX_TOKENS set to 512 is this demo's input limit, not a claim about the maximum supported by Nomic.
-MAX_TOKENS = 512
-# this value sets it so the model will use "memory sharing" once in an Oracle database. You likely want this.
-USE_EXTERNAL_DATA = True
-QUERY = "search_query: How do I find documents by meaning?"
-
+CONFIG = load_config()
+DB_USER = CONFIG["database"]["user"]
+DB_DSN = CONFIG["database"]["dsn"]
+MODEL = CONFIG["model"]
+MODEL_ID = MODEL["id"]
+QUANTIZE_MODEL = MODEL["quantize"]
+MODEL_NAME = MODEL["name"] + ("_INT8" if QUANTIZE_MODEL else "")
+OUTPUT_DIR = Path(os.environ.get("ONNX_OUTPUT_DIR", MODEL["output_dir"]))
+MAX_TOKENS = MODEL["max_tokens"]
+USE_EXTERNAL_DATA = MODEL["external_data"]
+QUERY = MODEL["query"]
+DIMENSIONS = MODEL["dimensions"]
 
 def make_pipeline():
     config = ONNXPipelineConfig.from_template(
         "text",
         max_seq_length=MAX_TOKENS,
-        distance_metrics=["COSINE"],
+        distance_metrics=MODEL["distance_metrics"],
         quantize_model=QUANTIZE_MODEL,
         use_external_data=USE_EXTERNAL_DATA,
     )
@@ -67,7 +66,7 @@ def import_db():
 
     user, dsn = DB_USER, DB_DSN
     if not user or not dsn or dsn == "database-name_low":
-        raise SystemExit("Set DB_DSN in the script before importing.")
+        raise SystemExit("Set database.dsn in config.toml before importing.")
     password = getpass.getpass("Enter your database password: ")
     oml.connect(user=user, password=password, dsn=dsn)
     try:
@@ -102,8 +101,8 @@ def import_db():
             {"text": QUERY},
         )
         vector = cursor.fetchone()[0]
-        if vector is None or len(vector) != 768:
-            raise RuntimeError("Expected a 768-dimensional Nomic embedding.")
+        if vector is None or len(vector) != DIMENSIONS:
+            raise RuntimeError(f"Expected a {DIMENSIONS}-dimensional embedding.")
         print("Input:", QUERY)
         print(f"Embedding: {len(vector)} dimensions; first five values: {list(vector[:5])}")
         cursor.close()

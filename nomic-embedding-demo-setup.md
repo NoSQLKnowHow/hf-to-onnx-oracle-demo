@@ -2,7 +2,7 @@
 
 This guide prepares the OML4Py client container to convert `nomic-ai/nomic-embed-text-v1.5` into an ONNX pipeline and export it to Oracle Autonomous AI Database in OCI.
 
-**Status:** The unquantized conversion created a 547,912,283-byte ONNX file with OML4Py 2.1.1. The quantized, external-data pipeline was exported directly to Autonomous AI Database and produced a 768-dimensional embedding. Comparison with Nomic reference embeddings remains outstanding. The export emitted tracing warnings and the OML4Py disconnect reported an insufficient INHERIT PRIVILEGES warning during temporary-object cleanup.
+**Status:** The unquantized conversion created a 547,912,283-byte ONNX file with OML4Py 2.1.1. The quantized, external-data pipeline was exported directly to Autonomous AI Database and produced a 768-dimensional embedding. For the tested sample inputs, the unquantized database embeddings matched the Nomic reference to the precision displayed; the quantized embeddings differed. The export emitted tracing warnings and the OML4Py disconnect reported an insufficient INHERIT PRIVILEGES warning during temporary-object cleanup.
 
 ## 1. Open the existing container
 
@@ -53,36 +53,50 @@ cat /u01/oml_home/wallet/sqlnet.ora
 
 The `DIRECTORY` entry should point to `/u01/oml_home/wallet`. The shell must have `TNS_ADMIN=/u01/oml_home/wallet`, as set by the `podman exec` command above. Copying the wallet into the existing container does not make it available to a replacement container. For a persistent setup, mount a protected wallet directory when creating the container.
 
-## 4. Copy the demo script
+## 4. Copy the scripts and configure the demo
 
-Transfer `embedding_model_demo.py` to the compute instance. On the compute instance, outside the container, substitute the path and container name:
+Copy the repository into the container or mount its directory. The scripts, `demo_config.py`, and `config.example.toml` must be in the same directory. Inside that directory, create your local configuration:
 
 ```bash
-podman cp /path/to/embedding_model_demo.py CONTAINER_NAME:/u01/oml_home/embedding_model_demo.py
+cp config.example.toml config.toml
 ```
+
+Edit `config.toml`. Set `[database]` `dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `[model]` section controls the model ID, name, quantization, external data, output directory, input limit, and expected vector dimensions. `[comparison]` contains the imported model names and reference settings; set either database model name to an empty string to skip it. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. Your local `config.toml` is ignored by Git.
+
+These scripts use Python 3.11 or newer for standard-library TOML parsing; the OML4Py 2.1.1 container provides Python 3.13.
 
 ## 5. Convert to ONNX
 
 Inside the container:
 
 ```bash
-cd /u01/oml_home
+cd /path/to/repository
 python3 embedding_model_demo.py convert
 ```
 
-The installed Transformers version asks for permission to run custom model code. Review the model and referenced code before answering `y` to each prompt. The prompts can time out. The script requests INT8 quantization by default and external model data. Set `QUANTIZE_MODEL = False` in the script to export an unquantized model. The base model name is `NOMIC_EMBED_TEXT_V15`; the script adds `_INT8` only when quantization is enabled. Oracle documents that `export2file` produces a ZIP archive containing the ONNX graph and its external data files. With quantization enabled, the script expects `NOMIC_EMBED_TEXT_V15_INT8.zip` in the current directory and displays a pipeline summary if conversion succeeds. This configuration and archive name have not yet been verified in the container.
+The installed Transformers version asks for permission to run custom model code. Review the model and referenced code before answering `y` to each prompt. The prompts can time out. The example configuration has quantization disabled and external data enabled. Set `quantize = true` in the `[model]` section to quantize the model. The base model name is `NOMIC_EMBED_TEXT_V15_ONNX`; the script adds `_INT8` only when quantization is enabled. Oracle documents that `export2file` produces a ZIP archive containing the ONNX graph and its external data files. With quantization enabled, the script expects `NOMIC_EMBED_TEXT_V15_ONNX_INT8.zip` in the current directory and displays a pipeline summary if conversion succeeds. This configuration and archive name have not yet been verified in the container.
 
 The demo configures a 512-token input limit and full 768-dimensional embeddings. The observed conversion recommended quantization for a model over 400 MB and emitted tracing warnings about sequence-length conditions. Successful conversion alone does not establish numerical equivalence or correct behavior for all input lengths. Compare outputs with a Nomic reference for varied short, long, query, and document inputs before recording. Quantization is optional and needs its own quality checks.
 
 ## 6. Export to Autonomous AI Database
 
-The script uses `ADMIN` for `DB_USER`. Set `DB_DSN` in the configuration section of the Python script. Use a TNS alias from the OCI Database connection page or the wallet's `tnsnames.ora`. The user needs `CREATE MINING MODEL`. The script prompts for the database user's password, which is separate from the wallet password.
+The example configuration uses `ADMIN`. Set `dsn` in the `[database]` section of `config.toml`. Use a TNS alias from the OCI Database connection page or the wallet's `tnsnames.ora`. The user needs `CREATE MINING MODEL`. The script prompts for the database user's password, which is separate from the wallet password.
 
 ```bash
 python3 embedding_model_demo.py import-db
 ```
 
-This step exports the pipeline directly to the database. It does not read the ONNX file from step 5. It checks that the mining model exists and generates a 768-dimensional embedding for a `search_query:` input. Use the `search_document:` prefix for documents. The demo uses `NOMIC_EMBED_TEXT_V15_INT8` when quantized and `NOMIC_EMBED_TEXT_V15` otherwise and does not replace an existing database model or an existing ONNX file.
+This step exports the pipeline directly to the database. It does not read the ONNX file from step 5. It checks that the mining model exists and generates a 768-dimensional embedding for a `search_query:` input. Use the `search_document:` prefix for documents. The demo uses `NOMIC_EMBED_TEXT_V15_ONNX_INT8` when quantized and `NOMIC_EMBED_TEXT_V15_ONNX` otherwise and does not replace an existing database model or an existing ONNX file.
+
+## 7. Compare embeddings
+
+Set one or both `[comparison]` model names in `config.toml`; an empty string disables that model. Edit `[[cases]]` to provide representative Nomic query and document text, and choose the query and document case names in `[comparison]`. Then run:
+
+```bash
+python3 compare_nomic_embeddings.py
+```
+
+This compares each enabled database model with a Hugging Face reference and reports cosine similarities, coordinate differences, and selected query-to-document similarities. The reference implementation is specific to Nomic Embed Text v1.5. Use matching model revisions, input conventions, limits, and vector dimensions; different settings can change results. This small comparison does not establish retrieval quality.
 
 ## References
 
