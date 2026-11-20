@@ -15,7 +15,7 @@ podman ps -a
 If the container is stopped, start it with `podman start CONTAINER_NAME`. Open a shell, using its actual name:
 
 ```bash
-podman exec -it -e TNS_ADMIN=/u01/oml_home/wallet CONTAINER_NAME /bin/bash
+podman exec -it CONTAINER_NAME /bin/bash
 ```
 
 The remaining commands run inside the container unless otherwise stated.
@@ -51,11 +51,11 @@ sed -i.bak 's|?/network/admin|/u01/oml_home/wallet|g' /u01/oml_home/wallet/sqlne
 cat /u01/oml_home/wallet/sqlnet.ora
 ```
 
-The `DIRECTORY` entry should point to `/u01/oml_home/wallet`. The shell must have `TNS_ADMIN=/u01/oml_home/wallet`, as set by the `podman exec` command above. Copying the wallet into the existing container does not make it available to a replacement container. For a persistent setup, mount a protected wallet directory when creating the container.
+The `DIRECTORY` entry should point to `/u01/oml_home/wallet`. Set `database.wallet_dir` in `config/config.toml` to `/u01/oml_home/wallet`. The scripts set `TNS_ADMIN` for their own process using that path. Copying the wallet into the existing container does not make it available to a replacement container. For a persistent setup, mount a protected wallet directory when creating the container.
 
 ## 4. Copy the scripts and configure the demo
 
-Copy the repository into the container or mount its directory. Keep the scripts and the `support`, `config`, and `docs` directories together as they appear in the repository. Inside that directory, edit `config/config.toml`. Set `database.dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `model.*` settings control the model ID, name, quantization, external data, output directory, input limit, expected vector dimensions, and text-template options. The example explicitly includes the text template defaults for lowercasing and mean pooling plus normalization. `model.name` sets the base name for both exporting and comparison. The quantized name is derived by adding `_INT8`. The comparison starts with the unquantized model; set `comparison.include_quantized = true` after importing the quantized model. Set `comparison.include_unquantized = false` to skip the unquantized model. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. The repository currently tracks `config/config.toml`, so avoid committing environment-specific settings or credentials.
+Copy the repository into the container or mount its directory. Keep the scripts and the `support`, `config`, and `docs` directories together as they appear in the repository. Inside that directory, edit `config/config.toml`. Set `database.dsn` to your wallet service alias and `database.wallet_dir` to the wallet directory inside the container; the example uses `ADMIN` as the user. The `model.*` settings control the model ID, name, quantization, external data, output directory, input limit, expected vector dimensions, and text-template options. The example explicitly includes the text template defaults for lowercasing and mean pooling plus normalization. `model.name` sets the base name for both exporting and comparison. The quantized name is derived by adding `_INT8`. The comparison starts with the unquantized model; set `comparison.include_quantized = true` after importing the quantized model. Set `comparison.include_unquantized = false` to skip the unquantized model. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. The repository currently tracks `config/config.toml`, so avoid committing environment-specific settings or credentials.
 
 These scripts use Python 3.11 or newer for standard-library TOML parsing; the OML4Py 2.1.1 container provides Python 3.13.
 

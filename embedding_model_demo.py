@@ -17,12 +17,14 @@ import getpass
 import os
 from pathlib import Path
 
-from oml.utils import ONNXPipeline, ONNXPipelineConfig
-
-from support.demo_config import load_config
+from support.demo_config import configure_wallet, load_config
 
 # Load the configurations from config.toml
 CONFIG = load_config()
+configure_wallet(CONFIG)
+
+from oml.utils import ONNXPipeline, ONNXPipelineConfig
+
 DB_USER = CONFIG["database"]["user"]
 DB_DSN = CONFIG["database"]["dsn"]
 MODEL = CONFIG["model"]
@@ -68,6 +70,7 @@ def convert():
 
 
 def import_db():
+    configure_wallet(CONFIG, check_files=True)
     import oml
 
     user, dsn = DB_USER, DB_DSN
