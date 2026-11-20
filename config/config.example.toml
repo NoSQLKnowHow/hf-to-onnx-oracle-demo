@@ -12,9 +12,11 @@ model.output_dir = "."
 model.max_tokens = 512
 model.dimensions = 768
 
-# Database models to compare; an empty name disables that model.
+# Database model name and which versions to compare. The quantized model
+# name is derived by adding _INT8 to the unquantized model name.
 comparison.unquantized_model = "NOMIC_EMBED_TEXT_V15_ONNX"
-comparison.quantized_model = "" # Set after importing a quantized model.
+comparison.include_unquantized = true
+comparison.include_quantized = false # Enable after importing the _INT8 model.
 
 # OTHER SETTINGS
 # Review these when choosing a different model or changing the export behavior.

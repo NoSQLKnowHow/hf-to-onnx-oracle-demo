@@ -10,6 +10,6 @@ Demo scripts for converting [`nomic-ai/nomic-embed-text-v1.5`](https://huggingfa
 - `support/demo_config.py` loads and checks those settings.
 - [Setup guide](docs/nomic-embedding-demo-setup.md) covers the OML4Py container, `einops`, Oracle wallet setup, conversion, and export to an Oracle AI Database.
 
-Run the scripts inside the configured OML4Py client container. Copy `config/config.example.toml` to `config/config.toml`, then set your service alias and model names in the configuration file. The example uses `ADMIN`. Passwords are requested at runtime. Do not commit wallet files, credentials, model downloads, or exported ONNX files.
+Run the scripts inside the configured OML4Py client container. Copy `config/config.example.toml` to `config/config.toml`, then set your service alias and base model name in the configuration file. The quantized comparison name is derived by adding `_INT8`. The example uses `ADMIN`. Passwords are requested at runtime. Do not commit wallet files, credentials, model downloads, or exported ONNX files.
 
 The database import and embedding generation have been exercised. The comparison was run on several sample inputs. The current external-data file export and other configurations should be verified in the target environment. These examples are not a substitute for retrieval-quality evaluation on application data.

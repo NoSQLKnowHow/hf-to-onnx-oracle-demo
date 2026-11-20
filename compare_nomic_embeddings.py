@@ -61,18 +61,28 @@ def cosine(a, b):
     return float(np.dot(a, b) / denom) if denom else float("nan")
 
 
+def comparison_models(settings):
+    base_name = validate_model_name(settings["unquantized_model"])
+    for key in ("include_unquantized", "include_quantized"):
+        if not isinstance(settings[key], bool):
+            raise ValueError(f"comparison.{key} must be true or false")
+    models = {}
+    if settings["include_unquantized"]:
+        models["unquantized"] = base_name
+    if settings["include_quantized"]:
+        models["quantized"] = validate_model_name(base_name + "_INT8")
+    if not models:
+        raise ValueError("Enable at least one database model for comparison.")
+    return models
+
+
 def main():
     if DB_DSN == "database-name_low":
         raise SystemExit("Set database.dsn in config/config.toml before running.")
     if not os.environ.get("TNS_ADMIN"):
         raise SystemExit("Set TNS_ADMIN to the wallet directory before running.")
     try:
-        models = {kind: validate_model_name(name) for kind, name in (
-            ("unquantized", COMPARISON["unquantized_model"]),
-            ("quantized", COMPARISON["quantized_model"]),
-        ) if name}
-        if not models or len(set(models.values())) != len(models):
-            raise ValueError("Set at least one database model name; enabled names must be distinct.")
+        models = comparison_models(COMPARISON)
         tokenizer_id = COMPARISON["tokenizer_id"]
         code_revision = COMPARISON["code_revision"]
         query_case = COMPARISON["query_case"]
