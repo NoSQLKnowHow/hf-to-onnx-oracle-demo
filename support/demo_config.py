@@ -1,4 +1,5 @@
 """Load shared configuration for the embedding demo and comparison."""
+import os
 import re
 import tomllib
 from pathlib import Path
@@ -17,7 +18,7 @@ def load_config():
     try:
         database = config["database"]
         model = config["model"]
-        for key in ("user", "dsn"):
+        for key in ("user", "dsn", "wallet_dir"):
             if not isinstance(database[key], str) or not database[key].strip():
                 raise ValueError(f"database.{key} must be a nonempty string")
         for key in ("id", "name", "output_dir", "query"):
@@ -50,3 +51,13 @@ def validate_model_name(name):
     if not isinstance(name, str) or not re.fullmatch(r"[A-Z][A-Z0-9_$#]{0,127}", name):
         raise ValueError("model names must be simple uppercase Oracle identifiers")
     return name
+
+
+def configure_wallet(config, *, check_files=False):
+    """Point Oracle Net to the configured wallet directory for this process."""
+    path = Path(config["database"]["wallet_dir"]).expanduser()
+    if not path.is_absolute():
+        raise SystemExit("database.wallet_dir in config/config.toml must be an absolute path.")
+    if check_files and not (path / "tnsnames.ora").is_file():
+        raise SystemExit(f"Cannot find tnsnames.ora in wallet directory: {path}")
+    os.environ["TNS_ADMIN"] = str(path)
