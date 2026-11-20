@@ -21,6 +21,7 @@ from oml.utils import ONNXPipeline, ONNXPipelineConfig
 
 from support.demo_config import load_config
 
+# Load the configurations from config.toml
 CONFIG = load_config()
 DB_USER = CONFIG["database"]["user"]
 DB_DSN = CONFIG["database"]["dsn"]
