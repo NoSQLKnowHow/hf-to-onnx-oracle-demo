@@ -29,6 +29,7 @@ MODEL = CONFIG["model"]
 MODEL_ID = MODEL["id"]
 QUANTIZE_MODEL = MODEL["quantize"]
 MODEL_NAME = MODEL["name"] + ("_INT8" if QUANTIZE_MODEL else "")
+FILE_NAME = MODEL["name"] + "_ONNX" + ("_INT8" if QUANTIZE_MODEL else "")
 OUTPUT_DIR = Path(os.environ.get("ONNX_OUTPUT_DIR", MODEL["output_dir"]))
 MAX_TOKENS = MODEL["max_tokens"]
 USE_EXTERNAL_DATA = MODEL["external_data"]
@@ -52,14 +53,14 @@ def make_pipeline():
 
 def convert():
     suffix = ".zip" if USE_EXTERNAL_DATA else ".onnx"
-    output_file = OUTPUT_DIR / f"{MODEL_NAME}{suffix}"
+    output_file = OUTPUT_DIR / f"{FILE_NAME}{suffix}"
     if not OUTPUT_DIR.is_dir():
         raise SystemExit(f"Output directory does not exist: {OUTPUT_DIR}")
     if output_file.exists():
         raise SystemExit(f"Output file already exists: {output_file}")
     print(f"Converting {MODEL_ID} to an ONNX pipeline...", flush=True)
     pipeline = make_pipeline()
-    pipeline.export2file(MODEL_NAME, output_dir=str(OUTPUT_DIR))
+    pipeline.export2file(FILE_NAME, output_dir=str(OUTPUT_DIR))
     if not output_file.is_file():
         raise RuntimeError(f"Expected output file not found: {output_file}")
     print(f"Saved: {output_file.resolve()} ({output_file.stat().st_size:,} bytes)")

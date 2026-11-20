@@ -68,7 +68,7 @@ cd /path/to/repository
 python3 embedding_model_demo.py convert
 ```
 
-The installed Transformers version asks for permission to run custom model code. Review the model and referenced code before answering `y` to each prompt. The prompts can time out. The example configuration has quantization disabled and external data enabled. Set `model.quantize = true` to quantize the model. The base model name is `NOMIC_EMBED_TEXT_V15_ONNX`; the script adds `_INT8` only when quantization is enabled. Oracle documents that `export2file` produces a ZIP archive containing the ONNX graph and its external data files. With quantization enabled, the script expects `NOMIC_EMBED_TEXT_V15_ONNX_INT8.zip` in the current directory and displays a pipeline summary if conversion succeeds. This configuration and archive name have not yet been verified in the container.
+The installed Transformers version asks for permission to run custom model code. Review the model and referenced code before answering `y` to each prompt. The prompts can time out. The example configuration has quantization disabled and external data enabled. Set `model.quantize = true` to quantize the model. The base name is `NOMIC_EMBED_TEXT_V15`. Exported file names add `_ONNX`, and quantized file names also add `_INT8`. Oracle documents that `export2file` produces a ZIP archive containing the ONNX graph and its external data files. With quantization enabled, the script expects `NOMIC_EMBED_TEXT_V15_ONNX_INT8.zip` in the current directory and displays a pipeline summary if conversion succeeds. This configuration and archive name have not yet been verified in the container.
 
 The demo configures a 512-token input limit and full 768-dimensional embeddings. The observed conversion recommended quantization for a model over 400 MB and emitted tracing warnings about sequence-length conditions. Successful conversion alone does not establish numerical equivalence or correct behavior for all input lengths. Compare outputs with a Nomic reference for varied short, long, query, and document inputs before recording. Quantization is optional and needs its own quality checks.
 
@@ -80,7 +80,7 @@ The example configuration uses `ADMIN`. Set `database.dsn` in `config/config.tom
 python3 embedding_model_demo.py import-db
 ```
 
-This step exports the pipeline directly to the database. It does not read the ONNX file from step 5. It checks that the mining model exists and generates a 768-dimensional embedding for a `search_query:` input. Use the `search_document:` prefix for documents. The demo uses `NOMIC_EMBED_TEXT_V15_ONNX_INT8` when quantized and `NOMIC_EMBED_TEXT_V15_ONNX` otherwise and does not replace an existing database model or an existing ONNX file.
+This step exports the pipeline directly to the database. It does not read the ONNX file from step 5. It checks that the mining model exists and generates a 768-dimensional embedding for a `search_query:` input. Use the `search_document:` prefix for documents. The demo uses the database model names `NOMIC_EMBED_TEXT_V15_INT8` when quantized and `NOMIC_EMBED_TEXT_V15` otherwise and does not replace an existing database model or an existing ONNX file.
 
 ## 7. Compare embeddings
 

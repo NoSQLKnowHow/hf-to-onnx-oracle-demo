@@ -7,8 +7,9 @@ database.dsn = "database-name_low"
 
 # Hugging Face model and the name used for the exported database model.
 model.id = "nomic-ai/nomic-embed-text-v1.5"
-# model.name will be used as the filename. "_INT8" is appended to the filename by scripts if model.quantize is true.
-model.name = "NOMIC_EMBED_TEXT_V15_ONNX"
+# Base name for database models and exported files. File names add _ONNX;
+# quantized versions add _INT8 to both the database and file names.
+model.name = "NOMIC_EMBED_TEXT_V15"
 model.quantize = false
 model.output_dir = "."
 model.max_tokens = 512
