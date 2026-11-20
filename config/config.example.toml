@@ -20,7 +20,7 @@ comparison.include_quantized = false # Enable after importing the _INT8 model.
 
 # OTHER SETTINGS
 # Review these when choosing a different model or changing the export behavior.
-model.external_data = true
+model.external_data = true # This setting enables memory sharing once the model is in an Oracle database.
 model.distance_metrics = ["COSINE"]
 model.do_lower_case = true
 model.post_processors = [{ name = "Pooling", type = "mean" }, { name = "Normalize" }]
@@ -30,7 +30,7 @@ model.query = "search_query: How do I find documents by meaning?"
 
 # Reference settings for comparing Nomic embeddings.
 comparison.tokenizer_id = "bert-base-uncased"
-comparison.trust_remote_code = true # Reference loading executes Nomic custom code.
+comparison.trust_remote_code = true # Reference loading executes Nomic custom code for transformers.
 comparison.code_revision = "7710840340a098cfb869c4f65e87cf2b1b70caca"
 comparison.query_case = "query_short"
 comparison.document_cases = ["document_short", "document_unrelated", "document_medium"]
