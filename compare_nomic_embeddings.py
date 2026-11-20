@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare one or two imported Nomic models with Hugging Face reference vectors.
 
-Copy config.example.toml to config.toml and configure the database, model names,
+Copy config/config.example.toml to config/config.toml and configure the database, model names,
 and example inputs. Run inside the OML4Py client container with TNS_ADMIN set.
 This script only queries existing models; it does not import or delete them.
 """
@@ -14,7 +14,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel, AutoTokenizer
 
-from demo_config import load_config, validate_model_name
+from support.demo_config import load_config, validate_model_name
 
 CONFIG = load_config()
 DB_USER = CONFIG["database"]["user"]
@@ -41,7 +41,7 @@ def read_cases():
             raise SystemExit(f"Case {name} needs nonempty text.")
         cases[name] = text
     if not cases:
-        raise SystemExit("Add at least one [[cases]] entry to config.toml.")
+        raise SystemExit("Add at least one [[cases]] entry to config/config.toml.")
     return cases
 
 
@@ -61,18 +61,28 @@ def cosine(a, b):
     return float(np.dot(a, b) / denom) if denom else float("nan")
 
 
+def comparison_models(settings):
+    base_name = validate_model_name(settings["unquantized_model"])
+    for key in ("include_unquantized", "include_quantized"):
+        if not isinstance(settings[key], bool):
+            raise ValueError(f"comparison.{key} must be true or false")
+    models = {}
+    if settings["include_unquantized"]:
+        models["unquantized"] = base_name
+    if settings["include_quantized"]:
+        models["quantized"] = validate_model_name(base_name + "_INT8")
+    if not models:
+        raise ValueError("Enable at least one database model for comparison.")
+    return models
+
+
 def main():
     if DB_DSN == "database-name_low":
-        raise SystemExit("Set database.dsn in config.toml before running.")
+        raise SystemExit("Set database.dsn in config/config.toml before running.")
     if not os.environ.get("TNS_ADMIN"):
         raise SystemExit("Set TNS_ADMIN to the wallet directory before running.")
     try:
-        models = {kind: validate_model_name(name) for kind, name in (
-            ("unquantized", COMPARISON["unquantized_model"]),
-            ("quantized", COMPARISON["quantized_model"]),
-        ) if name}
-        if not models or len(set(models.values())) != len(models):
-            raise ValueError("Set at least one database model name; enabled names must be distinct.")
+        models = comparison_models(COMPARISON)
         tokenizer_id = COMPARISON["tokenizer_id"]
         code_revision = COMPARISON["code_revision"]
         query_case = COMPARISON["query_case"]
@@ -97,7 +107,7 @@ def main():
             print("Loading Nomic reference model. This may take a few minutes.", flush=True)
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
             tokenizer.model_max_length = 1_000_000
-            model = AutoModel.from_pretrained(MODEL["id"], trust_remote_code=True, code_revision=code_revision)
+            model = AutoModel.from_pretrained(MODEL["id"], trust_remote_code=COMPARISON["trust_remote_code"], code_revision=code_revision)
             model.eval()
             print("Reference model revision:", getattr(model.config, "_commit_hash", "unknown"))
             print("Custom code revision:", code_revision)
