@@ -61,7 +61,7 @@ Copy the repository into the container or mount its directory. Keep the scripts 
 cp config/config.example.toml config/config.toml
 ```
 
-Edit `config/config.toml`. Set `[database]` `dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `[model]` section controls the model ID, name, quantization, external data, output directory, input limit, and expected vector dimensions. `[comparison]` contains the imported model names and reference settings; set either database model name to an empty string to skip it. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. Your local `config/config.toml` is ignored by Git.
+Edit `config/config.toml`. Set `[database]` `dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `[model]` section controls the model ID, name, quantization, external data, output directory, input limit, expected vector dimensions, and text-template options. The example explicitly includes the text template defaults for lowercasing and mean pooling plus normalization. `[comparison]` contains the imported model names and reference settings; the quantized model name is empty by default, so the comparison starts with the unquantized model. Set its name after importing a quantized model, or set the unquantized name to an empty string to skip it. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. Your local `config/config.toml` is ignored by Git.
 
 These scripts use Python 3.11 or newer for standard-library TOML parsing; the OML4Py 2.1.1 container provides Python 3.13.
 
@@ -96,7 +96,7 @@ Set one or both `[comparison]` model names in `config/config.toml`; an empty str
 python3 compare_nomic_embeddings.py
 ```
 
-This compares each enabled database model with a Hugging Face reference and reports cosine similarities, coordinate differences, and selected query-to-document similarities. The reference implementation is specific to Nomic Embed Text v1.5. Use matching model revisions, input conventions, limits, and vector dimensions; different settings can change results. This small comparison does not establish retrieval quality.
+This compares each enabled database model with a Hugging Face reference and reports cosine similarities, coordinate differences, and selected query-to-document similarities. The reference implementation is specific to Nomic Embed Text v1.5 and its mean-pooling and normalization convention. The `trust_remote_code` setting applies only to reference model loading; it does not control OML4Py conversion prompts. Use matching model revisions, input conventions, limits, and vector dimensions; different settings can change results. This small comparison does not establish retrieval quality.
 
 ## References
 

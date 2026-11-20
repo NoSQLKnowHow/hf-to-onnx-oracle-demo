@@ -97,7 +97,7 @@ def main():
             print("Loading Nomic reference model. This may take a few minutes.", flush=True)
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
             tokenizer.model_max_length = 1_000_000
-            model = AutoModel.from_pretrained(MODEL["id"], trust_remote_code=True, code_revision=code_revision)
+            model = AutoModel.from_pretrained(MODEL["id"], trust_remote_code=COMPARISON["trust_remote_code"], code_revision=code_revision)
             model.eval()
             print("Reference model revision:", getattr(model.config, "_commit_hash", "unknown"))
             print("Custom code revision:", code_revision)

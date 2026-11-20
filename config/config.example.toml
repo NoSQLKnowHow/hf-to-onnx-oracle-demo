@@ -12,13 +12,19 @@ output_dir = "."
 max_tokens = 512
 dimensions = 768
 distance_metrics = ["COSINE"]
+# OML4Py text-template defaults. Change these only for a compatible model.
+do_lower_case = true
+post_processors = [{ name = "Pooling", type = "mean" }, { name = "Normalize" }]
+languages = []
+use_float16 = false
 query = "search_query: How do I find documents by meaning?"
 
 [comparison]
 # Set either model name to an empty string to skip it.
 unquantized_model = "NOMIC_EMBED_TEXT_V15_ONNX"
-quantized_model = "NOMIC_EMBED_TEXT_V15_ONNX_INT8"
+quantized_model = "" # Set after importing a quantized model.
 tokenizer_id = "bert-base-uncased"
+trust_remote_code = true # Reference model loading executes Nomic custom code.
 code_revision = "7710840340a098cfb869c4f65e87cf2b1b70caca"
 query_case = "query_short"
 document_cases = ["document_short", "document_unrelated", "document_medium"]

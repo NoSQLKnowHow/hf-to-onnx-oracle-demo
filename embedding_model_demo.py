@@ -41,6 +41,10 @@ def make_pipeline():
         distance_metrics=MODEL["distance_metrics"],
         quantize_model=QUANTIZE_MODEL,
         use_external_data=USE_EXTERNAL_DATA,
+        do_lower_case=MODEL["do_lower_case"],
+        post_processors=MODEL["post_processors"],
+        languages=MODEL["languages"],
+        use_float16=MODEL["use_float16"],
     )
     return ONNXPipeline(model_name=MODEL_ID, config=config)
 
