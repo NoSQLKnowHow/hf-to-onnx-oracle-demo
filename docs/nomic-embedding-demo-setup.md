@@ -55,13 +55,7 @@ The `DIRECTORY` entry should point to `/u01/oml_home/wallet`. The shell must hav
 
 ## 4. Copy the scripts and configure the demo
 
-Copy the repository into the container or mount its directory. Keep the scripts and the `support`, `config`, and `docs` directories together as they appear in the repository. Inside that directory, create your local configuration:
-
-```bash
-cp config/config.example.toml config/config.toml
-```
-
-Edit `config/config.toml`. Set `database.dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `model.*` settings control the model ID, name, quantization, external data, output directory, input limit, expected vector dimensions, and text-template options. The example explicitly includes the text template defaults for lowercasing and mean pooling plus normalization. `comparison.unquantized_model` sets the base database model name. The quantized name is derived by adding `_INT8`. The comparison starts with the unquantized model; set `comparison.include_quantized = true` after importing the quantized model. Set `comparison.include_unquantized = false` to skip the unquantized model. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. Your local `config/config.toml` is ignored by Git.
+Copy the repository into the container or mount its directory. Keep the scripts and the `support`, `config`, and `docs` directories together as they appear in the repository. Inside that directory, edit `config/config.toml`. Set `database.dsn` to your wallet service alias; the example uses `ADMIN` as the user. The `model.*` settings control the model ID, name, quantization, external data, output directory, input limit, expected vector dimensions, and text-template options. The example explicitly includes the text template defaults for lowercasing and mean pooling plus normalization. `model.name` sets the base name for both exporting and comparison. The quantized name is derived by adding `_INT8`. The comparison starts with the unquantized model; set `comparison.include_quantized = true` after importing the quantized model. Set `comparison.include_unquantized = false` to skip the unquantized model. The `[[cases]]` entries are example query and document inputs. Passwords remain interactive and must not be placed in the config file. The repository currently tracks `config/config.toml`, so avoid committing environment-specific settings or credentials.
 
 These scripts use Python 3.11 or newer for standard-library TOML parsing; the OML4Py 2.1.1 container provides Python 3.13.
 
@@ -90,7 +84,7 @@ This step exports the pipeline directly to the database. It does not read the ON
 
 ## 7. Compare embeddings
 
-Set `comparison.unquantized_model` in `config/config.toml`, then enable either or both model versions using `comparison.include_unquantized` and `comparison.include_quantized`. The quantized model name is the base name plus `_INT8`. Edit `[[cases]]` to provide representative Nomic query and document text, and choose the query and document case names in the `comparison.*` settings. Then run:
+Set `model.name` in `config/config.toml`, then enable either or both model versions using `comparison.include_unquantized` and `comparison.include_quantized`. The quantized model name is the base name plus `_INT8`. Edit `[[cases]]` to provide representative Nomic query and document text, and choose the query and document case names in the `comparison.*` settings. Then run:
 
 ```bash
 python3 compare_nomic_embeddings.py

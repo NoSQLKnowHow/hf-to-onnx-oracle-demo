@@ -5,7 +5,7 @@ Run inside the full OML4Py 2.1 client container:
     python3 embedding_model_demo.py convert
     python3 embedding_model_demo.py import-db
 
-Copy config/config.example.toml to config/config.toml and set the database connection alias;
+Edit config/config.toml and set the database connection alias;
 configure network access and the wallet if required by that connection. The password is prompted
 without echoing. The database user needs CREATE MINING MODEL. Internet access to Hugging Face
 is needed on the first conversion. This candidate needs an actual test with this model and the

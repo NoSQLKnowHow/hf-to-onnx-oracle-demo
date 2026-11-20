@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare one or two imported Nomic models with Hugging Face reference vectors.
 
-Copy config/config.example.toml to config/config.toml and configure the database, model names,
+Edit config/config.toml to configure the database, model name,
 and example inputs. Run inside the OML4Py client container with TNS_ADMIN set.
 This script only queries existing models; it does not import or delete them.
 """
@@ -61,8 +61,8 @@ def cosine(a, b):
     return float(np.dot(a, b) / denom) if denom else float("nan")
 
 
-def comparison_models(settings):
-    base_name = validate_model_name(settings["unquantized_model"])
+def comparison_models(settings, base_name):
+    base_name = validate_model_name(base_name)
     for key in ("include_unquantized", "include_quantized"):
         if not isinstance(settings[key], bool):
             raise ValueError(f"comparison.{key} must be true or false")
@@ -82,7 +82,7 @@ def main():
     if not os.environ.get("TNS_ADMIN"):
         raise SystemExit("Set TNS_ADMIN to the wallet directory before running.")
     try:
-        models = comparison_models(COMPARISON)
+        models = comparison_models(COMPARISON, MODEL["name"])
         tokenizer_id = COMPARISON["tokenizer_id"]
         code_revision = COMPARISON["code_revision"]
         query_case = COMPARISON["query_case"]

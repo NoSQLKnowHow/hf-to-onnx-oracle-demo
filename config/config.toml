@@ -14,9 +14,8 @@ model.output_dir = "."
 model.max_tokens = 512
 model.dimensions = 768
 
-# Database model name and which versions to compare. The quantized model
-# name is derived by adding _INT8 to the unquantized model name.
-comparison.unquantized_model = "NOMIC_EMBED_TEXT_V15_ONNX"
+# Choose which model versions to compare. Both names use model.name;
+# the quantized model name adds _INT8.
 comparison.include_unquantized = true
 comparison.include_quantized = false # Enable after importing the _INT8 model.
 
