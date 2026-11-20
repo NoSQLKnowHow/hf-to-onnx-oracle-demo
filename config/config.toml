@@ -1,4 +1,5 @@
-# Copy this file to config/config.toml and edit your copy. Never put a password here.
+# Never put a password here in this file.
+
 # SETTINGS TO REVIEW FIRST
 # Database connection: use a TNS alias from your wallet.
 database.user = "ADMIN"
