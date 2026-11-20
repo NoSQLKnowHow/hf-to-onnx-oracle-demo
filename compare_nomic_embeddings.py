@@ -2,19 +2,17 @@
 """Compare one or two imported Nomic models with Hugging Face reference vectors.
 
 Edit config/config.toml to configure the database, model name,
-and example inputs. Run inside the OML4Py client container with TNS_ADMIN set.
+and example inputs. Run inside the OML4Py client container.
 This script only queries existing models; it does not import or delete them.
 """
 import getpass
-import os
-
 import numpy as np
 import oracledb
 import torch
 import torch.nn.functional as F
 from transformers import AutoModel, AutoTokenizer
 
-from support.demo_config import load_config, validate_model_name
+from support.demo_config import configure_wallet, load_config, validate_model_name
 
 CONFIG = load_config()
 DB_USER = CONFIG["database"]["user"]
@@ -79,8 +77,7 @@ def comparison_models(settings, base_name):
 def main():
     if DB_DSN == "database-name_low":
         raise SystemExit("Set database.dsn in config/config.toml before running.")
-    if not os.environ.get("TNS_ADMIN"):
-        raise SystemExit("Set TNS_ADMIN to the wallet directory before running.")
+    configure_wallet(CONFIG, check_files=True)
     try:
         models = comparison_models(COMPARISON, MODEL["name"])
         tokenizer_id = COMPARISON["tokenizer_id"]
