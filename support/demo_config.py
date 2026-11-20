@@ -11,7 +11,7 @@ def load_config():
         with CONFIG_PATH.open("rb") as source:
             config = tomllib.load(source)
     except FileNotFoundError:
-        raise SystemExit(f"Configuration not found: {CONFIG_PATH}. Copy config/config.example.toml to config/config.toml and edit it.")
+        raise SystemExit(f"Configuration not found: {CONFIG_PATH}. Restore config/config.toml from the repository and edit it.")
     except tomllib.TOMLDecodeError as exc:
         raise SystemExit(f"Invalid configuration in {CONFIG_PATH}: {exc}")
     try:

@@ -6,10 +6,10 @@ Demo scripts for converting [`nomic-ai/nomic-embed-text-v1.5`](https://huggingfa
 
 - [`embedding_model_demo.py`](embedding_model_demo.py) Using the [OML4Py client container image](https://container-registry.oracle.com/ords/ocr/ba/database/oml4py-client), this script packages an embedding model from [Hugging Face](https://huggingface.co/) into ONNX format by creating an ONNX pipeline, and can export that embedding model directly to an Oracle AI Database, if desired.
 - [`compare_nomic_embeddings.py`](compare_nomic_embeddings.py) compares an unquantized [Nomic](https://www.nomic.ai/) reference vector with one or both imported database models. The reference comparison is specific to Nomic Embed Text v1.5.
-- `config/config.example.toml` holds the shared settings and sample inputs. Copy it to `config/config.toml` and edit your copy.
+- `config/config.toml` holds the shared settings and sample inputs. Edit it for your environment.
 - `support/demo_config.py` loads and checks those settings.
 - [Setup guide](docs/nomic-embedding-demo-setup.md) covers the OML4Py container, `einops`, Oracle wallet setup, conversion, and export to an Oracle AI Database.
 
-Run the scripts inside the configured OML4Py client container. Copy `config/config.example.toml` to `config/config.toml`, then set your service alias and base model name in the configuration file. The quantized comparison name is derived by adding `_INT8`. The example uses `ADMIN`. Passwords are requested at runtime. Do not commit wallet files, credentials, model downloads, or exported ONNX files.
+Run the scripts inside the configured OML4Py client container. Edit `config/config.toml` and set your service alias and base model name in the configuration file. The quantized comparison name is derived by adding `_INT8`. The example uses `ADMIN`. Passwords are requested at runtime. Do not commit wallet files, credentials, model downloads, or exported ONNX files.
 
 The database import and embedding generation have been exercised. The comparison was run on several sample inputs. The current external-data file export and other configurations should be verified in the target environment. These examples are not a substitute for retrieval-quality evaluation on application data.
