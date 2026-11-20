@@ -2,7 +2,7 @@
 
 **Note:** The code and information in this repository are for demonstration purposes online. They are not endorsed, sanctioned, or otherwise approved by Oracle, Inc.
 
-Demo scripts for converting [`nomic-ai/nomic-embed-text-v1.5`](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5), or any other embedding model on [Hugging Face](https://huggingface.co/), with [Oracle Machine Learning for Python (OML4Py)](https://docs.oracle.com/en/database/oracle/machine-learning/oml4py/), importing it into Oracle Autonomous AI Database, and then comparing database embeddings with the Nomic reference implementation.
+Demo scripts for converting [`nomic-ai/nomic-embed-text-v1.5`](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5), or any other embedding model on [Hugging Face](https://huggingface.co/) with a supported tokenizer, with [Oracle Machine Learning for Python (OML4Py)](https://docs.oracle.com/en/database/oracle/machine-learning/oml4py/), importing it into Oracle Autonomous AI Database, and then comparing database embeddings with the Nomic reference implementation.
 
 - [`embedding_model_demo.py`](embedding_model_demo.py) Using the [OML4Py client container image](https://container-registry.oracle.com/ords/ocr/ba/database/oml4py-client), this script packages an embedding model from [Hugging Face](https://huggingface.co/) into ONNX format by creating an ONNX pipeline, and can export that embedding model directly to an Oracle AI Database, if desired.
 - [`compare_nomic_embeddings.py`](compare_nomic_embeddings.py) compares an unquantized [Nomic](https://www.nomic.ai/) reference vector with one or both imported database models. The reference comparison is specific to Nomic Embed Text v1.5.
