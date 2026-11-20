@@ -19,7 +19,7 @@ DB_USER = "ADMIN"
 DB_DSN = "database-name_low"
 # Fixed SQL identifier, not a bind variable. Change only to a trusted model name.
 QUANTIZE_MODEL = False
-MODEL_NAME = "NOMIC_EMBED_TEXT_V15" + ("_INT8" if QUANTIZE_MODEL else "")
+MODEL_NAME = "NOMIC_EMBED_TEXT_V15_ONNX" + ("_INT8" if QUANTIZE_MODEL else "")
 MODEL_ID = "nomic-ai/nomic-embed-text-v1.5"
 # The custom-code revision observed in the successful export log.
 CODE_REVISION = "7710840340a098cfb869c4f65e87cf2b1b70caca"
