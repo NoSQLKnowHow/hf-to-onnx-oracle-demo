@@ -54,15 +54,11 @@ def upload_blob(connection, source):
     blob = connection.createlob(oracledb.DB_TYPE_BLOB)
     digest = hashlib.sha256()
     offset = 1
-    try:
-        while chunk := source.read(1024 * 1024):
-            blob.write(chunk, offset)
-            digest.update(chunk)
-            offset += len(chunk)
-        return blob, digest.hexdigest()
-    except Exception:
-        blob.close()
-        raise
+    while chunk := source.read(1024 * 1024):
+        blob.write(chunk, offset)
+        digest.update(chunk)
+        offset += len(chunk)
+    return blob, digest.hexdigest()
 
 
 def import_artifact(cursor, path, candidate):
@@ -75,7 +71,6 @@ def import_artifact(cursor, path, candidate):
         blobs = []
         def upload(name, stream):
             blob, digest = upload_blob(cursor.connection, stream)
-            stack.callback(blob.close)
             blobs.append(blob)
             print(f"  {name}: SHA-256 {digest}", flush=True)
             return blob
@@ -177,6 +172,7 @@ def import_db():
         candidate = "ONNX_STAGE_" + uuid.uuid4().hex[:20].upper()
         backup = "ONNX_BACKUP_" + uuid.uuid4().hex[:20].upper()
         print(f"Importing the saved artifact: {output_file.resolve()}", flush=True)
+        print(f"Temporary database model name: {candidate}", flush=True)
         import_artifact(cursor, output_file, candidate)
         print(f"Imported as {candidate}; checking its embedding...", flush=True)
         cursor.execute(f"SELECT VECTOR_EMBEDDING({candidate} USING :text AS data) FROM dual", {"text": QUERY})
