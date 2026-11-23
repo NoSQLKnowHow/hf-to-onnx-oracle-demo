@@ -15,8 +15,10 @@ installed OML4Py version before recording.
 import argparse
 import getpass
 import os
-import tempfile
-from contextlib import contextmanager
+import hashlib
+import json
+import uuid
+import zipfile
 from pathlib import Path
 
 from support.demo_config import configure_wallet, load_config
@@ -40,16 +42,75 @@ USE_EXTERNAL_DATA = MODEL["external_data"]
 QUERY = MODEL["query"]
 DIMENSIONS = MODEL["dimensions"]
 
-@contextmanager
-def database_export_directory():
-    """Isolate files OML4Py may create in the process working directory."""
-    original_dir = Path.cwd()
-    with tempfile.TemporaryDirectory(prefix=".onnx-db-export-", dir=OUTPUT_DIR.resolve()) as temp_dir:
-        try:
-            os.chdir(temp_dir)
-            yield
-        finally:
-            os.chdir(original_dir)
+def artifact_path():
+    suffix = ".zip" if USE_EXTERNAL_DATA else ".onnx"
+    return OUTPUT_DIR / f"{FILE_NAME}{suffix}"
+
+
+def upload_blob(connection, source):
+    """Stream the bytes from the saved artifact into a temporary database BLOB."""
+    import oracledb
+
+    blob = connection.createlob(oracledb.DB_TYPE_BLOB)
+    digest = hashlib.sha256()
+    offset = 1
+    while chunk := source.read(1024 * 1024):
+        blob.write(chunk, offset)
+        digest.update(chunk)
+        offset += len(chunk)
+    return blob, digest.hexdigest()
+
+
+def import_artifact(cursor, path, candidate):
+    """Import the ONNX graph and external data contained in the saved artifact."""
+    from contextlib import ExitStack
+
+    metadata = json.dumps({"function": "embedding", "embeddingOutput": "embedding",
+                           "input": {"input": ["DATA"]}})
+    with ExitStack() as stack:
+        blobs = []
+        def upload(name, stream):
+            blob, digest = upload_blob(cursor.connection, stream)
+            blobs.append(blob)
+            print(f"  {name}: SHA-256 {digest}", flush=True)
+            return blob
+
+        binds = {"name": candidate, "metadata": metadata}
+        if path.suffix == ".onnx":
+            with path.open("rb") as source:
+                binds["model"] = upload(path.name, source)
+            sql = "BEGIN DBMS_DATA_MINING.IMPORT_ONNX_MODEL(:name, :model, JSON(:metadata)); END;"
+        else:
+            archive = stack.enter_context(zipfile.ZipFile(path))
+            names = archive.namelist()
+            if len(names) != len(set(names)):
+                raise ValueError("The archive contains duplicate filenames.")
+            graphs = [n for n in names if n.endswith(".onnx")]
+            manifests = [n for n in names if n.endswith("_external_data.json")]
+            if len(graphs) != 1 or len(manifests) != 1:
+                raise ValueError("Expected one ONNX graph and one external-data JSON in the ZIP.")
+            manifest_bytes = archive.read(manifests[0])
+            manifest = json.loads(manifest_bytes)
+            groups = manifest.get("external_data_groups")
+            if not isinstance(groups, list) or not groups:
+                raise ValueError("External-data metadata has no data groups.")
+            group_names = [g.get("group_name") for g in groups]
+            if any(not isinstance(n, str) or not n or n not in names for n in group_names) or len(set(group_names)) != len(group_names):
+                raise ValueError("External-data metadata has missing or duplicate data files.")
+            with archive.open(graphs[0]) as source:
+                binds["model"] = upload(graphs[0], source)
+            binds["external_metadata"] = manifest_bytes.decode("utf-8")
+            statements = []
+            for index, name in enumerate(group_names):
+                with archive.open(name) as source:
+                    binds[f"data{index}"] = upload(name, source)
+                binds[f"filename{index}"] = name
+                statements.append(f"groups(:filename{index}) := :data{index};")
+            sql = ("DECLARE groups DBMS_DATA_MINING.EXTERNAL_DATA_GROUPS_T; BEGIN "
+                   + " ".join(statements)
+                   + " DBMS_DATA_MINING.IMPORT_ONNX_MODEL(:name, :model, JSON(:metadata), "
+                     "JSON(:external_metadata), groups); END;")
+        cursor.execute(sql, binds)
 
 
 def make_pipeline():
@@ -68,8 +129,7 @@ def make_pipeline():
 
 
 def convert():
-    suffix = ".zip" if USE_EXTERNAL_DATA else ".onnx"
-    output_file = OUTPUT_DIR / f"{FILE_NAME}{suffix}"
+    output_file = artifact_path()
     if not OUTPUT_DIR.is_dir():
         raise SystemExit(f"Output directory does not exist: {OUTPUT_DIR}")
     if output_file.exists():
@@ -104,45 +164,31 @@ def import_db():
                 f"Cannot replace {MODEL_NAME}: the existing model is not an ONNX model."
             )
 
-        # export2file and export2db are separate exports. Stage the file first
-        # so a failed file export leaves any existing file and model intact.
-        if not OUTPUT_DIR.is_dir():
-            raise RuntimeError(f"Output directory does not exist: {OUTPUT_DIR}")
-        pipeline = make_pipeline()
-        suffix = ".zip" if USE_EXTERNAL_DATA else ".onnx"
-        output_file = OUTPUT_DIR / f"{FILE_NAME}{suffix}"
-        print(f"Saving ONNX pipeline to {output_file}...", flush=True)
-        with tempfile.TemporaryDirectory(prefix=".onnx-export-", dir=OUTPUT_DIR) as staging_dir:
-            pipeline.export2file(FILE_NAME, output_dir=staging_dir)
-            staged_file = Path(staging_dir) / output_file.name
-            if not staged_file.is_file():
-                raise RuntimeError(f"Expected output file not found: {staged_file}")
-            os.replace(staged_file, output_file)
-        print(f"Saved: {output_file.resolve()} ({output_file.stat().st_size:,} bytes)")
-
-        # OML4Py may retain the staged path after export2file. Use a fresh
-        # pipeline for export2db so it does not reuse a moved temporary file.
-        # The direct database export prepares the model again; it does not load
-        # the file above. The old model is dropped just before export.
-        db_pipeline = make_pipeline()
-        if existing:
-            print(f"Replacing existing database model {MODEL_NAME}...", flush=True)
-            cursor.execute(
-                "BEGIN DBMS_VECTOR.DROP_ONNX_MODEL(model_name => :name); END;",
-                {"name": MODEL_NAME},
-            )
-        print(f"Exporting {MODEL_ID} directly to the database...", flush=True)
+        output_file = artifact_path()
+        if not output_file.is_file():
+            raise RuntimeError(f"Saved ONNX artifact not found: {output_file}. Run convert first.")
+        # Import under a temporary name first, so a failed upload or import does
+        # not remove the existing model. The previous model is retained as a backup.
+        candidate = "ONNX_STAGE_" + uuid.uuid4().hex[:20].upper()
+        backup = "ONNX_BACKUP_" + uuid.uuid4().hex[:20].upper()
+        print(f"Importing the saved artifact: {output_file.resolve()}", flush=True)
+        print(f"Temporary database model name: {candidate}", flush=True)
+        import_artifact(cursor, output_file, candidate)
+        print(f"Imported as {candidate}; checking its embedding...", flush=True)
+        cursor.execute(f"SELECT VECTOR_EMBEDDING({candidate} USING :text AS data) FROM dual", {"text": QUERY})
+        candidate_vector = cursor.fetchone()[0]
+        if candidate_vector is None or len(candidate_vector) != DIMENSIONS:
+            raise RuntimeError(f"Expected a {DIMENSIONS}-dimensional embedding from {candidate}.")
         try:
-            with database_export_directory():
-                db_pipeline.export2db(MODEL_NAME)
+            cursor.execute(
+                "BEGIN DBMS_DATA_MINING.RENAME_MODEL(:candidate, :target, :backup); END;",
+                {"candidate": candidate, "target": MODEL_NAME, "backup": backup if existing else None},
+            )
         except Exception:
-            if existing:
-                print(
-                    f"Export failed after dropping {MODEL_NAME}; the previous model was not restored.",
-                    flush=True,
-                )
+            print(f"Could not promote {candidate}; it may still exist in the database.", flush=True)
             raise
-        print("Pipeline summary:", db_pipeline.summary())
+        if existing:
+            print(f"Previous database model preserved as {backup}.")
 
         cursor.execute(
             "SELECT model_name, algorithm, mining_function "
