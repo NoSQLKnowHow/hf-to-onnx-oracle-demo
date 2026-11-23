@@ -107,8 +107,11 @@ def import_db():
             os.replace(staged_file, output_file)
         print(f"Saved: {output_file.resolve()} ({output_file.stat().st_size:,} bytes)")
 
-        # The direct database export prepares the pipeline separately; it does
-        # not load the file above. The old model is dropped just before export.
+        # OML4Py may retain the staged path after export2file. Use a fresh
+        # pipeline for export2db so it does not reuse a moved temporary file.
+        # The direct database export prepares the model again; it does not load
+        # the file above. The old model is dropped just before export.
+        db_pipeline = make_pipeline()
         if existing:
             print(f"Replacing existing database model {MODEL_NAME}...", flush=True)
             cursor.execute(
@@ -117,7 +120,7 @@ def import_db():
             )
         print(f"Exporting {MODEL_ID} directly to the database...", flush=True)
         try:
-            pipeline.export2db(MODEL_NAME)
+            db_pipeline.export2db(MODEL_NAME)
         except Exception:
             if existing:
                 print(
@@ -125,7 +128,7 @@ def import_db():
                     flush=True,
                 )
             raise
-        print("Pipeline summary:", pipeline.summary())
+        print("Pipeline summary:", db_pipeline.summary())
 
         cursor.execute(
             "SELECT model_name, algorithm, mining_function "
