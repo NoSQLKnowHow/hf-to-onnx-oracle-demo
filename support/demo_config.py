@@ -1,7 +1,16 @@
 """Load shared configuration for the embedding demo and comparison."""
 import os
 import re
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError as exc:
+    if exc.name != "tomllib":
+        raise
+    raise SystemExit(
+        "This script requires Python 3.11 or newer to read config.toml. "
+        "Run it in the OML4Py 2.1.1 client container, which includes Python 3.13.5. "
+        "Check your interpreter with: python3 --version"
+    ) from None
 from pathlib import Path
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "config.toml"

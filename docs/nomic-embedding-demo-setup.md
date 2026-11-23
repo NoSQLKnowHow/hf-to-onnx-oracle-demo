@@ -18,7 +18,7 @@ If the container is stopped, start it with `podman start CONTAINER_NAME`. Open a
 podman exec -it CONTAINER_NAME /bin/bash
 ```
 
-The remaining commands run inside the container unless otherwise stated.
+The remaining commands run inside the container unless otherwise stated. To verify the interpreter before running the script, use `python3 --version`. The OML4Py 2.1.1 image includes Python 3.13.5. If `import tomllib` fails, check that you entered the container rather than using the compute instance's Python.
 
 ## 2. Install the Nomic model dependency
 
