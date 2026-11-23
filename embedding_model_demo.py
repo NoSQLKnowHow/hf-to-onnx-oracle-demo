@@ -16,6 +16,7 @@ import argparse
 import getpass
 import os
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 from support.demo_config import configure_wallet, load_config
@@ -38,6 +39,18 @@ MAX_TOKENS = MODEL["max_tokens"]
 USE_EXTERNAL_DATA = MODEL["external_data"]
 QUERY = MODEL["query"]
 DIMENSIONS = MODEL["dimensions"]
+
+@contextmanager
+def database_export_directory():
+    """Isolate files OML4Py may create in the process working directory."""
+    original_dir = Path.cwd()
+    with tempfile.TemporaryDirectory(prefix=".onnx-db-export-", dir=OUTPUT_DIR.resolve()) as temp_dir:
+        try:
+            os.chdir(temp_dir)
+            yield
+        finally:
+            os.chdir(original_dir)
+
 
 def make_pipeline():
     config = ONNXPipelineConfig.from_template(
@@ -120,7 +133,8 @@ def import_db():
             )
         print(f"Exporting {MODEL_ID} directly to the database...", flush=True)
         try:
-            db_pipeline.export2db(MODEL_NAME)
+            with database_export_directory():
+                db_pipeline.export2db(MODEL_NAME)
         except Exception:
             if existing:
                 print(
