@@ -101,6 +101,8 @@ def main():
                 if not cursor.fetchone():
                     raise SystemExit(f"Model {name} was not found in the connected user's schema.")
             print("Database models:", models)
+            print("These are the database models being compared with the original Nomic model.")
+            print("An unquantized model retains its original precision; a quantized model uses reduced precision.")
             print("Loading Nomic reference model. This may take a few minutes.", flush=True)
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
             tokenizer.model_max_length = 1_000_000
@@ -108,7 +110,13 @@ def main():
             model.eval()
             print("Reference model revision:", getattr(model.config, "_commit_hash", "unknown"))
             print("Custom code revision:", code_revision)
-            print(f"Token count includes special tokens; reference truncates at {MAX_TOKENS}.")
+            print("These revisions identify the reference model and custom model code used in this run.")
+            print(f"Token counts include special tokens. The reference model uses at most {MAX_TOKENS} tokens per input.")
+            print("For each input below, the same text is sent to the reference and enabled database models.")
+            print("Each pair compares the resulting vectors: cosine near 1 means similar direction; ")
+            print("max abs diff is the largest difference between matching vector values, so smaller is closer.")
+            print("A value displayed as 1.000000 or 0.000000 may have been rounded to that value.")
+            print("Norm is the length of a vector; a norm near 1 means it is normalized.")
             results = {}
             for label, text in cases.items():
                 token_count = len(tokenizer(text, truncation=False)["input_ids"])
@@ -126,17 +134,25 @@ def main():
                         raise RuntimeError(f"Unexpected dimensions or non-finite values for {label} / {kind}: {vector.shape}")
                 results[label] = vectors
                 print(f"\n{label} ({token_count} tokens):")
+                print("  Comparing the vectors produced for this input:")
                 names = list(vectors)
                 for i, first in enumerate(names):
                     for second in names[i + 1:]:
                         x, y = vectors[first], vectors[second]
                         print(f"  {first} / {second}: cosine={cosine(x, y):.6f}, max abs diff={np.max(np.abs(x-y)):.6f}")
                 print("  norms: " + ", ".join(f"{k}={np.linalg.norm(v):.6f}" for k, v in vectors.items()), flush=True)
+                print("  Norms show vector lengths, not whether the vectors point in the same direction.")
             print("\nQuery-to-document cosine similarities (higher is closer):")
+            print(f"These scores compare the {query_case} query with each document using the same model.")
+            print("Within each model, a higher score ranks that document as more similar to the query.")
+            print("Compare the document ordering across models to see whether their rankings change.")
+            print("A higher score does not guarantee that a document is relevant to a person.")
             for label in document_cases:
                 scores = [f"{kind}={cosine(results[query_case][kind], results[label][kind]):.6f}" for kind in results[query_case]]
                 print(f"  {label}: " + ", ".join(scores))
-            print("\nNo automatic pass threshold: inspect differences and ranking with representative data.")
+            print("\nThere is no automatic pass threshold. Small vector or score differences do not by themselves")
+            print("establish whether search quality is acceptable. Test representative queries and documents,")
+            print("and check whether each model ranks relevant documents where your application needs them.")
 
 
 if __name__ == "__main__":
