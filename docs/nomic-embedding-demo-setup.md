@@ -80,7 +80,9 @@ The example configuration uses `ADMIN`. Set `database.dsn` in `config/config.tom
 python3 embedding_model_demo.py import-db
 ```
 
-This step exports the pipeline directly to the database. It does not read the ONNX file from step 5. It checks that the mining model exists and generates a 768-dimensional embedding for a `search_query:` input. Use the `search_document:` prefix for documents. The demo uses the database model names `NOMIC_EMBED_TEXT_V15_INT8` when quantized and `NOMIC_EMBED_TEXT_V15` otherwise and does not replace an existing database model or an existing ONNX file.
+This step first exports the pipeline to the configured output directory, replacing a same-named file after a successful staged export. It then exports the pipeline directly to the database. The database export is a separate preparation and does not read the saved file. It checks that the mining model exists and generates a 768-dimensional embedding for a `search_query:` input. Use the `search_document:` prefix for documents. The demo uses the database model names `NOMIC_EMBED_TEXT_V15_INT8` when quantized and `NOMIC_EMBED_TEXT_V15` otherwise and replaces an existing ONNX model with that name in the connected user's schema. The separate `convert` command still refuses to overwrite an existing output file.
+
+Replacement saves the file first, then drops the existing database model before preparing and exporting the new database pipeline. It is not an atomic overwrite: if conversion or import fails, the old model is not restored. The database user needs permission to drop the existing model. The script refuses to replace an existing model whose algorithm is not ONNX. Do not use this replacement path for a model managed by `DBMS_VECTOR_DATABASE`; Oracle requires those models to be dropped through `DBMS_VECTOR_DATABASE.DROP_MODEL` to preserve its metadata. Consider a new model name when you need to keep the old version available. Replacing a model does not regenerate stored embeddings; validate compatibility and re-embed as necessary.
 
 ## 7. Compare embeddings
 

@@ -15,6 +15,7 @@ installed OML4Py version before recording.
 import argparse
 import getpass
 import os
+import tempfile
 from pathlib import Path
 
 from support.demo_config import configure_wallet, load_config
@@ -81,17 +82,49 @@ def import_db():
     try:
         cursor = oml.cursor()
         cursor.execute(
-            "SELECT model_name FROM user_mining_models WHERE model_name = :name",
+            "SELECT algorithm FROM user_mining_models WHERE model_name = :name",
             {"name": MODEL_NAME},
         )
-        if cursor.fetchone():
-            raise SystemExit(f"Database model already exists: {MODEL_NAME}")
+        existing = cursor.fetchone()
+        if existing and existing[0] != "ONNX":
+            raise RuntimeError(
+                f"Cannot replace {MODEL_NAME}: the existing model is not an ONNX model."
+            )
 
-        # export2db generates and imports a pipeline directly. It does not
-        # load the file produced by the separate convert command.
-        print(f"Exporting {MODEL_ID} directly to the database...", flush=True)
+        # export2file and export2db are separate exports. Stage the file first
+        # so a failed file export leaves any existing file and model intact.
+        if not OUTPUT_DIR.is_dir():
+            raise RuntimeError(f"Output directory does not exist: {OUTPUT_DIR}")
         pipeline = make_pipeline()
-        pipeline.export2db(MODEL_NAME)
+        suffix = ".zip" if USE_EXTERNAL_DATA else ".onnx"
+        output_file = OUTPUT_DIR / f"{FILE_NAME}{suffix}"
+        print(f"Saving ONNX pipeline to {output_file}...", flush=True)
+        with tempfile.TemporaryDirectory(prefix=".onnx-export-", dir=OUTPUT_DIR) as staging_dir:
+            pipeline.export2file(FILE_NAME, output_dir=staging_dir)
+            staged_file = Path(staging_dir) / output_file.name
+            if not staged_file.is_file():
+                raise RuntimeError(f"Expected output file not found: {staged_file}")
+            os.replace(staged_file, output_file)
+        print(f"Saved: {output_file.resolve()} ({output_file.stat().st_size:,} bytes)")
+
+        # The direct database export prepares the pipeline separately; it does
+        # not load the file above. The old model is dropped just before export.
+        if existing:
+            print(f"Replacing existing database model {MODEL_NAME}...", flush=True)
+            cursor.execute(
+                "BEGIN DBMS_VECTOR.DROP_ONNX_MODEL(model_name => :name); END;",
+                {"name": MODEL_NAME},
+            )
+        print(f"Exporting {MODEL_ID} directly to the database...", flush=True)
+        try:
+            pipeline.export2db(MODEL_NAME)
+        except Exception:
+            if existing:
+                print(
+                    f"Export failed after dropping {MODEL_NAME}; the previous model was not restored.",
+                    flush=True,
+                )
+            raise
         print("Pipeline summary:", pipeline.summary())
 
         cursor.execute(
