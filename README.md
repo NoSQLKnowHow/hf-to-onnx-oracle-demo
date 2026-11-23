@@ -1,6 +1,6 @@
 # Running Hugging Face embedding models inside Oracle AI Database
 
-**Note:** The code and information in this repository are for demonstration purposes online. They are not endorsed, sanctioned, or otherwise approved by Oracle, Inc.
+**Note:** The code and information in this repository are for demonstration purposes online. The code is not endorsed, sanctioned, or otherwise approved by Oracle, Inc. There is no support, and the code is provided as-is. Use at your own discretion.
 
 Demo scripts for converting [`nomic-ai/nomic-embed-text-v1.5`](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5), or any other embedding model on [Hugging Face](https://huggingface.co/) with a supported tokenizer, with [Oracle Machine Learning for Python (OML4Py)](https://docs.oracle.com/en/database/oracle/machine-learning/oml4py/), importing it into Oracle Autonomous AI Database, and then comparing database embeddings with the Nomic reference implementation.
 
