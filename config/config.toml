@@ -2,7 +2,8 @@
 
 # SETTINGS TO REVIEW FIRST
 # Database connection: use a TNS alias from your wallet.
-database.user = "ADMIN"
+database.admin = "ADMIN"
+database.user = "EMBEDDING_DEMO"
 database.dsn = "database-name_low"
 # Directory inside the container containing tnsnames.ora and the wallet.
 database.wallet_dir = "/u01/oml_home/wallet"

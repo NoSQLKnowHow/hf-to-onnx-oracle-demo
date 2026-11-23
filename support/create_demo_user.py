@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an Autonomous Database user for the embedding demo as ADMIN.
+"""Create an Autonomous Database user using the configured administrator.
 
 Run from the repository root inside the OML4Py client container:
     python3 support/create_demo_user.py
@@ -37,16 +37,23 @@ def quota_value(value):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--user", type=username_value, default="EMBEDDING_DEMO", help="New database username (default: EMBEDDING_DEMO)")
+    parser.add_argument("--user", type=username_value, default=None, help="New database username (default: database.user in config/config.toml)")
     parser.add_argument("--quota", type=quota_value, default="2G", help="Quota on the DATA tablespace (default: 2G)")
     parser.add_argument("--sql", default=None, help="One SQL statement to run as ADMIN instead of the default table creation; omit a trailing semicolon")
     args = parser.parse_args()
     config = load_config()
     configure_wallet(config, check_files=True)
+    try:
+        args.user = username_value(args.user or config["database"]["user"])
+    except argparse.ArgumentTypeError as exc:
+        raise SystemExit(f"Invalid database.user: {exc}")
+    admin_user = config["database"]["admin"]
+    if args.user.upper() == admin_user.upper():
+        raise SystemExit("The demo user and administrator account must be different.")
     dsn = config["database"]["dsn"]
     if dsn == "database-name_low":
         raise SystemExit("Set database.dsn in config/config.toml first.")
-    admin_password = getpass.getpass("ADMIN database password: ")
+    admin_password = getpass.getpass(f"{admin_user} database password: ")
     new_password = getpass.getpass(f"New password for {args.user}: ")
     confirmation = getpass.getpass("Confirm new password: ")
     if not new_password or new_password != confirmation:
@@ -54,7 +61,7 @@ def main():
     if '"' in new_password or any(ord(char) < 32 for char in new_password):
         raise SystemExit('The new password cannot contain a double quote or control characters.')
     oracledb.init_oracle_client()
-    with oracledb.connect(user="ADMIN", password=admin_password, dsn=dsn) as connection:
+    with oracledb.connect(user=admin_user, password=admin_password, dsn=dsn) as connection:
         with connection.cursor() as cursor:
             cursor.execute("SELECT username FROM all_users WHERE username = :name", name=args.user)
             if cursor.fetchone():
@@ -84,7 +91,7 @@ def main():
                 "content VARCHAR2(4000), "
                 f"embedding VECTOR({config['model']['dimensions']}, FLOAT32))"
             )
-            print("Executing SQL as ADMIN: " + ("custom statement" if args.sql else f"create {args.user}.DEMO_DOCUMENTS"), flush=True)
+            print(f"Executing SQL as {admin_user}: " + ("custom statement" if args.sql else f"create {args.user}.DEMO_DOCUMENTS"), flush=True)
             try:
                 cursor.execute(statement)
             except oracledb.Error:
