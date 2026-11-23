@@ -18,7 +18,7 @@ def load_config():
     try:
         database = config["database"]
         model = config["model"]
-        for key in ("user", "dsn", "wallet_dir"):
+        for key in ("admin", "user", "dsn", "wallet_dir"):
             if not isinstance(database[key], str) or not database[key].strip():
                 raise ValueError(f"database.{key} must be a nonempty string")
         for key in ("id", "name", "output_dir", "query"):
